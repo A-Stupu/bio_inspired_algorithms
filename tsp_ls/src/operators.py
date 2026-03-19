@@ -1,6 +1,7 @@
 # operators.py
 import random
-# Neighborhood operators
+
+### Neighborhood operators ###
 
 def vertex_switching_neighbors(tour):
     """
@@ -59,6 +60,23 @@ def get_neighbors(tour, operator):
         raise ValueError(f"Unknown operator: {operator}")
 
 
+### Utilities for optimized (delta 2-opt) algorithms ###
+
+def apply_2opt(tour, i, j):
+    """
+    In place 2-opt exchange
+    """
+    tour[i:j+1] = tour[i:j+1][::-1]
+
+def random_2opt_move(n):
+    """
+    Generates a pair of random indices (i, j) for a 2-opt exchange
+    """
+    i, j = sorted(random.sample(range(n), 2))
+    return i, j
+
+
+# Other:
 
 # Not sure if this is needed but here are the single neighbor generators:
 

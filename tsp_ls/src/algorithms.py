@@ -1,10 +1,7 @@
+# algorithms.py
 import math
 import random
-from .operators import vertex_switching, two_opt
-
-
-
-
+from .operators import apply_2opt, random_2opt_move
 
 # slides 32 & 33 /83, Local Search :
 
@@ -34,12 +31,11 @@ from .operators import vertex_switching, two_opt
 # 10: end while
 # 11: return x_i
 
-
-
 # possible first version (least efficient)
 
-def greedy_local_search_v1(init_solution, fitness, get_neighbors):
+def greedy_local_search_naive_v1(init_solution, fitness, get_neighbors):
     x = init_solution()
+    fx = fitness(x)
 
     while True:
         neighbors = get_neighbors(x)
@@ -55,30 +51,36 @@ def greedy_local_search_v1(init_solution, fitness, get_neighbors):
 
         if best_value < fitness(x):
             x = best_neighbor
+            fx = best_value
         else:
             break
     
-    return x
+    return x, fx
 
 # possible second version (a bit more efficient)
 
-def greedy_local_search_v2(init_solution, fitness, get_neighbors):
+def greedy_local_search_naive_v2(init_solution, fitness, get_neighbors):
     x = init_solution()
-    
+    fx = fitness(x)
     while True:
         improved = False
         
         for c in get_neighbors(x):
-            if fitness(c) < fitness(x):
+            fc = fitness(c)
+            if fc < fx:
                 x = c
+                fx = fc
                 improved = True
                 break
         
         if not improved:
             break
     
-    return x
+    return x, fx
 
+def greedy_2opt_optimized(tour, dist):
+    n = len(tour)
+    return None
 
 
 
@@ -121,25 +123,43 @@ def greedy_local_search_v2(init_solution, fitness, get_neighbors):
 # 9: return x
 
 
-def simulated_annealing_v1(init_solution, initial_temp, min_temp,
-                           fitness, cooling, random_neighbor):
+def simulated_annealing_naive(
+        init_solution, 
+        fitness,
+        initial_temp, 
+        min_temp,
+        update_temp, # ex: T=T*cooling
+        random_neighbor
+    ):
 
     x = init_solution()
+    fx = fitness(x)
     T = initial_temp
     
     while T > min_temp:
         c = random_neighbor(x)
-        
-        delta = fitness(c) - fitness(x)
-        
+        fc = fitness(c)
+        delta = fc - fx
+
         if delta < 0 or random.random() < math.exp(-delta / T):
             x = c
+            fx = fc
         
-        T *= cooling
+        T = update_temp(T)
     
-    return x
+    return x, fx
     
 
+def simulated_annealing_optimized(
+        tour,
+        dist, 
+        initial_temp, 
+        min_temp,
+        update_temp, 
+        max_iter,
+    ):
+    n = len(tour)
+    return None
 
 
 

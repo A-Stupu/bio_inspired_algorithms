@@ -36,7 +36,7 @@ class Tour:
         total = 0.0
         n = len(self.vertices)
         for i in range(n):
-            a = self.vertices
+            a = self.vertices[i]
             b = self.vertices[(i + 1) % n]
             total += distance_matrix[a][b]
         return total
