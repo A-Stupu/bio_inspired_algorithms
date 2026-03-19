@@ -1,3 +1,3 @@
-tsp_ls/DB/bioalg-proj01-dimacs-10k/
-tsp_ls/DB/bioalg-proj01-hz/
-tsp_ls/DB/bioalg-proj01-tsplib/
+# Ignore all files in the data directory
+tsp_ls/data/*
+tsp_ls/results/*

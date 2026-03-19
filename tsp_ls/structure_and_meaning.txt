@@ -1,0 +1,19 @@
+hi!
+
+
+tsp-local-search/
+├── README.md
+├── requirements.txt
+│
+├── data/                   # .tsp instances
+├── results/                # CSVs + plots
+│
+├── src/
+│   ├── tsp.py              # parser, delta-cost, distance functions
+│   ├── operators.py        # 2-opt, vertex-switch, or-opt
+│   ├── algorithms.py       # greedy LS + SA + temperature schedules
+│   ├── init.py             # random, nearest-neighbor
+│   └── run.py              # CLI entry point + experiment loop + CSV output
+│
+└── tests/
+    └── test_tsp.py         # parser, tour cost, operator correctness
