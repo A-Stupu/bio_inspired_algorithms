@@ -60,47 +60,33 @@ def get_neighbors(tour, operator):
         raise ValueError(f"Unknown operator: {operator}")
 
 
-### Utilities for optimized (delta 2-opt) algorithms ###
 
-def apply_2opt(tour, i, j):
-    """
-    In place 2-opt exchange
-    """
-    tour[i:j+1] = tour[i:j+1][::-1]
+### single neighbor generators ###
 
-def random_2opt_move(n):
-    """
-    Generates a pair of random indices (i, j) for a 2-opt exchange
-    """
-    i, j = sorted(random.sample(range(n), 2))
-    return i, j
-
-
-# Other:
-
-# Not sure if this is needed but here are the single neighbor generators:
+# Used Used, for example, to randomly generate a neighbor 
+# for the naive simulated annealing algorithm
 
 def vertex_switching(tour, a=None, b=None):
     """
     Generates a new tour with the exchange of two vertices
     """
-    tour_copy = tour.copy()
-    n=len(tour_copy)
+    neighbor = tour.copy()
+    n=len(neighbor)
 
     # If a and b are not provided, choose a random pair
     if a is None or b is None:
         a, b = random.sample(range(n), 2)
 
-    tour_copy[a], tour_copy[b] = tour_copy[b], tour_copy[a]
-    return tour_copy
+    neighbor[a], neighbor[b] = neighbor[b], neighbor[a]
+    return neighbor
 
 
 def two_opt(tour, i=None, j=None):
     """
     Generates a new tour with the 2-opt exchange applied
     """
-    tour_copy = tour.copy()
-    n = len(tour_copy)
+    neighbor = tour.copy()
+    n = len(neighbor)
 
     # If i and j are not provided, a valid random pair is chosen
     if i is None or j is None:
@@ -108,8 +94,8 @@ def two_opt(tour, i=None, j=None):
         if j - i < 2:
             j = (i+2) % n
 
-    tour_copy[i:j] = tour_copy[i:j][::-1]
-    return tour_copy
+    neighbor[i:j] = neighbor[i:j][::-1]
+    return neighbor
 
 def or_opt(tour, seg_len=1):
     """
@@ -130,6 +116,25 @@ def or_opt(tour, seg_len=1):
     # Create the new tour
     neighbor = rest[:pos] + segment + rest[pos:]
     return neighbor
+
+
+### Utilities for optimized (delta 2-opt) algorithms ###
+
+def random_2opt_move(n):
+    """
+    Generates a pair of random indices (i, j) for a 2-opt exchange
+    """
+    i, j = sorted(random.sample(range(n), 2))
+    return i, j
+
+def apply_2opt(tour, i, j):
+    """
+    In place 2-opt exchange
+    """
+    tour[i:j+1] = tour[i:j+1][::-1]
+
+
+### references ###
 
 # https://deepwiki.com/rciemi/simulated-annealing-tsp-py/2.2-neighborhood-generation-strategies
 # https://tsp-basics.blogspot.com/2017/03/or-opt.html
