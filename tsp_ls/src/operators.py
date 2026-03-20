@@ -38,13 +38,14 @@ def or_opt_neighbors(tour, seg_len=1):
 
     for i in range(n):
         segment = [tour[(i + k) % n] for k in range(seg_len)]
-        rest = [tour[j] for j in range(n) if j not in range(i, i + seg_len)]
+        indices = [(i + k) % n for k in range(seg_len)]
+        rest = [tour[j] for j in range(n) if j not in indices]
         
         # Insert segment at every position in rest
         for pos in range(len(rest) + 1):
             neighbor = rest[:pos] + segment + rest[pos:]
             if neighbor != tour:
-                yield neighbor, (i, pos)
+                yield neighbor
 
 def get_neighbors(tour, operator):
     """
@@ -118,13 +119,16 @@ def or_opt(tour, seg_len=1):
     return neighbor
 
 
-### Utilities for optimized (delta 2-opt) algorithms ###
+### Utilities for optimized (delta cost) algorithms ###
 
 def random_2opt_move(n):
     """
     Generates a pair of random indices (i, j) for a 2-opt exchange
     """
-    i, j = sorted(random.sample(range(n), 2))
+    while True:
+        i, j = sorted(random.sample(range(n), 2))
+        if j - i >= 2 and not (i == 0 and j == n-1):
+            break
     return i, j
 
 def apply_2opt(tour, i, j):

@@ -1,4 +1,4 @@
-
+# tsp.py
 import math
 from dataclasses import dataclass, field
 
@@ -284,24 +284,6 @@ def delta_cost_or_opt(tour, instance, i, insert_pos):
 	                  instance.distance_matrix[vertex_prev_insert][vertex_next_insert])
 	
 	return removal_cost + insertion_cost
-
-
-class Tour:
-    def __init__(self, vertices):
-        self.vertices = vertices # list of tour vertex indices
-
-    def cost(self, distance_matrix):
-        """Calculate the total cost of the tour."""
-        total = 0.0
-        n = len(self.vertices)
-        for i in range(n):
-            a = self.vertices[i]
-            b = self.vertices[(i + 1) % n]
-            total += distance_matrix[a][b]
-        return total
-    def distances(self, a, b, distance_matrix):
-        return distance_matrix[a][b] # distance between 2 vertices
-
 
 if __name__ == "__main__":
 	# Example usage
