@@ -33,7 +33,11 @@ from .operators import apply_2opt, random_2opt_move
 
 # possible first version (least efficient)
 
-def greedy_local_search_naive_v1(init_solution, fitness, get_neighbors):
+def greedy_local_search_naive_best_neighbor(
+        init_solution, 
+        fitness, 
+        get_neighbors
+        ):
     x = init_solution()
     fx = fitness(x)
 
@@ -59,7 +63,11 @@ def greedy_local_search_naive_v1(init_solution, fitness, get_neighbors):
 
 # possible second version (a bit more efficient)
 
-def greedy_local_search_naive_v2(init_solution, fitness, get_neighbors):
+def greedy_local_search_naive_first_neighbor(
+        init_solution, 
+        fitness, 
+        get_neighbors
+    ):
     x = init_solution()
     fx = fitness(x)
     while True:
@@ -128,14 +136,12 @@ def simulated_annealing_naive(
         fitness,
         initial_temp, 
         min_temp,
-        update_temp, # ex: T=T*cooling
+        update_temp,
         random_neighbor
     ):
-
     x = init_solution()
     fx = fitness(x)
     T = initial_temp
-    
     while T > min_temp:
         c = random_neighbor(x)
         fc = fitness(c)
