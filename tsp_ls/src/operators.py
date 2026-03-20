@@ -51,7 +51,7 @@ def get_neighbors(tour, operator):
     """
     Dispatch to the right neighbor generator.
     """
-    if operator == "vertex switching":
+    if operator == "swap":
         return vertex_switching_neighbors(tour)
     elif operator == "2-opt":
         return two_opt_neighbors(tour)
@@ -118,25 +118,64 @@ def or_opt(tour, seg_len=1):
     neighbor = rest[:pos] + segment + rest[pos:]
     return neighbor
 
+def random_neighbor(tour):
+    op = random.choice(["swap", "2-opt", "or-opt"])
+    
+    if op == "swap":
+        return vertex_switching(tour)
+    elif op == "2-opt":
+        return two_opt(tour)
+    else:
+        return or_opt(tour)  
 
-### Utilities for optimized (delta cost) algorithms ###
 
-def random_2opt_move(n):
-    """
-    Generates a pair of random indices (i, j) for a 2-opt exchange
-    """
-    while True:
-        i, j = sorted(random.sample(range(n), 2))
-        if j - i >= 2 and not (i == 0 and j == n-1):
-            break
-    return i, j
+### move based (delta cost) approach utilities ###
 
-def apply_2opt(tour, i, j):
-    """
-    In place 2-opt exchange
-    """
+def generate_vertex_switching_moves(tour):
+    n = len(tour)
+    for i in range(n):
+        for j in range(i + 1, n):
+            yield (i, j)
+
+def apply_vertex_switching(tour, move):
+    i, j = move
+    tour[i], tour[j] = tour[j], tour[i]
+
+def generate_2opt_moves(tour):
+    n = len(tour)
+    for i in range(n - 1):
+        for j in range(i + 2, n):
+            if i == 0 and j == n - 1:
+                continue  # avoid same tour
+            yield (i, j)
+
+def apply_2opt(tour, move):
+    i, j = move
     tour[i:j+1] = tour[i:j+1][::-1]
 
+def generate_or_opt_moves(tour):
+    n = len(tour)
+    for i in range(n):
+        for insert_pos in range(n):
+            if insert_pos == i or insert_pos == (i + 1) % n:
+                continue  # no real change
+            yield (i, insert_pos)
+
+def apply_or_opt(tour, move):
+    i, insert_pos = move
+    node = tour[i]
+    # remove the vertex
+    del tour[i]
+    # adjust the position if needed
+    if insert_pos > i:
+        insert_pos -= 1
+    tour.insert(insert_pos, node)
+
+# note:
+# run first
+# delta = delta_fn(tour, instance, move)
+# then
+# apply_fn(tour, move)
 
 ### references ###
 

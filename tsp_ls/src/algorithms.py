@@ -1,20 +1,11 @@
 # algorithms.py
 import math
 import random
-from .operators import apply_2opt, random_2opt_move
+from .tsp import tour_cost
 
-# slides 32 & 33 /83, Local Search :
+### greedy local search algorithms ###
 
-# def greedy_local_search(D, f):
-#     x = D.sample()
-#     while True:
-#         N = D.neighbors(x)
-#         fc, c = min( (f(c), c) for c in N )
-#         if f(c) < f(x):
-#             x = c
-#         else:
-#             break
-#     return x
+# slides 32 & 33 /83, Local Search:
 
 # Algorithm GreedyLocalSearch
 # Input: domain D, fitness f
@@ -31,7 +22,17 @@ from .operators import apply_2opt, random_2opt_move
 # 10: end while
 # 11: return x_i
 
-# possible first version (least efficient)
+# def greedy_local_search(D, f):
+#     x = D.sample()
+#     while True:
+#         N = D.neighbors(x)
+#         fc, c = min( (f(c), c) for c in N )
+#         if f(c) < f(x):
+#             x = c
+#         else:
+#             break
+#     return x
+
 
 def greedy_local_search_naive_best_neighbor(
         init_solution, 
@@ -61,7 +62,6 @@ def greedy_local_search_naive_best_neighbor(
     
     return x, fx
 
-# possible second version (a bit more efficient)
 
 def greedy_local_search_naive_first_neighbor(
         init_solution, 
@@ -86,36 +86,51 @@ def greedy_local_search_naive_first_neighbor(
     
     return x, fx
 
-def greedy_2opt_optimized(tour, dist):
-    n = len(tour)
-    return None
+
+def greedy_local_search_optimized(
+        tour,
+        instance,
+        generate_moves,   # iterable of moves
+        delta_fn,
+        apply_fn,
+        strategy="first"
+):
+    current_cost = tour_cost(tour, instance)
+    improved = True
+
+    while improved:
+        improved = False
+
+        if strategy == "first":
+            for move in generate_moves(tour):
+                delta = delta_fn(tour, instance, move)
+
+                if delta < 0:
+                    apply_fn(tour, move)
+                    current_cost += delta
+                    improved = True
+                    break
+
+        elif strategy == "best":
+            best_move = None
+            best_delta = 0
+
+            for move in generate_moves(tour):
+                delta = delta_fn(tour, instance, move)
+
+                if delta < best_delta:
+                    best_delta = delta
+                    best_move = move
+
+            if best_move is not None:
+                apply_fn(tour, best_move)
+                current_cost += best_delta
+                improved = True
+
+    return tour, current_cost
 
 
-
-# Naive approach :
-# neighbor = two_opt(current)
-# n_len = tour_length(neighbor, dist)
-
-# optimized approach (with delta 2 opt) :
-
-# for i in range(n - 1):
-#     for j in range(i + 2, n):
-
-#         if i == 0 and j == n - 1:
-#             continue
-
-#         delta = delta_2opt(current, dist, i, j)
-
-#         if delta < 0:
-#             apply_2opt(current, i, j)
-#             current_len += delta
-#             break
-
-
-
-
-
-
+### Simulated Annealing algorithms ###
 
 # Algorithm SimulatedAnnealing
 # Input: domain D, fitness f , temperature T
@@ -158,31 +173,39 @@ def simulated_annealing_naive(
 
 def simulated_annealing_optimized(
         tour,
-        dist, 
-        initial_temp, 
-        min_temp,
-        update_temp, 
-        max_iter,
-    ):
-    n = len(tour)
-    return None
+        instance,
+        generate_random_move,
+        delta_fn,
+        apply_fn,
+        T,
+        min_T,
+        update_T,
+        max_iter
+):
+    current_cost = tour_cost(tour, instance)
+    best = tour[:]
+    best_cost = current_cost
 
+    for _ in range(max_iter):
+        if T < min_T:
+            break
 
+        move = generate_random_move(tour)
+        delta = delta_fn(tour, instance, move)
 
-# optimized approach :
-# i, j = sorted(random.sample(range(n), 2))
+        if delta < 0 or random.random() < math.exp(-delta / T):
+            apply_fn(tour, move)
+            current_cost += delta
 
-# delta = delta_2opt(current, dist, i, j)
+            if current_cost < best_cost:
+                best = tour[:]
+                best_cost = current_cost
 
-# if delta < 0 or random.random() < math.exp(-delta / temp):
-#     apply_2opt(current, i, j)
-#     current_len += delta
+        T = update_T(T)
 
+    return best, best_cost
 
-# see also : Simulated Annealing by Stages
-# slide 35/53, Simulated Annealing
-
-# see also : slide 36/53 : temperature reduction
+# see also: slide 36/53 on temperature reduction
 
 # Temperature reduction
 # 1. Geometric: Tk = αTk−1
