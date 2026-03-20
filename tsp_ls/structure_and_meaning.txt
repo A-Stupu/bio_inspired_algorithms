@@ -1,6 +1,3 @@
-hi!
-
-
 tsp-local-search/
 ├── README.md
 ├── requirements.txt
