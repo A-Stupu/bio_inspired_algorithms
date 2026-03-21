@@ -1,6 +1,6 @@
 # Ignore all files in the following directories
 tsp_ls/data/*
-tsp_ls/results/*
+#tsp_ls/results/*
 tsp_ls/DB/*
 
 !tsp_ls/results/.gitkeep
