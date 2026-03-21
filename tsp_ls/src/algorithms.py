@@ -3,7 +3,8 @@ import math
 import random
 from .tsp import tour_cost
 
-EPSILON = 1e-9  # guard against floating-point near-zero deltas
+EPSILON = 1e-9
+RESYNC_EVERY = 500  # resync exact cost every N iterations in SA to prevent floating-point drift
 
 ### greedy local search algorithms ###
 
@@ -80,6 +81,7 @@ def greedy_local_search_optimized(
 ):
     """
     Optimized greedy local search using delta-cost evaluation (avoids full tour recomputation).
+    current_cost is recomputed exactly after each move to avoid floating-point drift from accumulated delta additions.
 
     Args:
         tour:           mutable list of city indices (modified in-place)
@@ -103,7 +105,7 @@ def greedy_local_search_optimized(
                 delta = delta_fn(tour, instance, move)
                 if delta < -EPSILON:          # ← epsilon guard
                     apply_fn(tour, move)
-                    current_cost += delta
+                    current_cost = tour_cost(tour, instance)  # exact resync
                     improved = True
                     break                     # restart from new position
 
@@ -119,7 +121,7 @@ def greedy_local_search_optimized(
 
             if best_move is not None:
                 apply_fn(tour, best_move)
-                current_cost += best_delta
+                current_cost = tour_cost(tour, instance)  # exact resync
                 improved = True
 
         if not improved:
@@ -193,6 +195,7 @@ def simulated_annealing_optimized(
     """
     Optimized simulated annealing using delta-cost evaluation.
     Keeps track of the best solution found during the search.
+    current_cost is resynced exactly every RESYNC_EVERY iterations to prevent floating-point drift from turning negative.
 
     Args:
         tour:                 mutable list of city indices (modified in-place)
@@ -212,7 +215,7 @@ def simulated_annealing_optimized(
     best = tour[:]
     best_cost = current_cost
 
-    for _ in range(max_iter):
+    for i in range(max_iter):
         if T < min_T:
             break
 
@@ -226,6 +229,10 @@ def simulated_annealing_optimized(
             if current_cost < best_cost:
                 best = tour[:]
                 best_cost = current_cost
+
+        # Periodic exact resync to prevent floating-point drift
+        if i % RESYNC_EVERY == 0:
+            current_cost = tour_cost(tour, instance)
 
         T = update_T(T)
 

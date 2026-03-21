@@ -458,7 +458,7 @@ def run_experiments(tsp_dir, out_path, n_runs, max_nodes=None, tsp_file=None):
     df = pd.DataFrame(rows)
     df.to_csv(out_path, index=False)
     print(f"\n✓ Results saved to {out_path}")
-    print(df.head(10).to_string())
+    print(df.head(30).to_string())
 
 
 # ─── Entry point ──────────────────────────────────────────────────────────────
