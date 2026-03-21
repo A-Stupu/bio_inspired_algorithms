@@ -2,3 +2,9 @@
 tsp_ls/data/*
 tsp_ls/results/*
 tsp_ls/DB/*
+
+!tsp_ls/results/.gitkeep
+!tsp_ls/DB/.gitkeep
+
+__pycache__/
+*.py[cod]

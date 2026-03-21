@@ -52,7 +52,7 @@ def compute_distance_matrix(instance):
 	for i in range(n):
 		for j in range(i + 1, n):
 			distance = euclidean_distance(
-				instance.vertex_coords[i], 
+				instance.vertex_coords[i],
 				instance.vertex_coords[j]
 			)
 			
@@ -61,24 +61,41 @@ def compute_distance_matrix(instance):
 				distance = math.ceil(distance)
 			else:  # Default to EUC_2D: round to nearest integer
 				distance = round(distance)
-			
+
 			instance.distance_matrix[i][j] = distance
 			instance.distance_matrix[j][i] = distance
+
+
+def read_tsplib_dimension(fname):
+	"""
+	Read only the DIMENSION field from a TSPLIB file header.
+	Stops as soon as the value is found — does not parse coordinates
+	or compute any distance matrix. Used to quickly filter large instances.
+
+	Args:
+	    fname: Path to the TSPLIB .tsp file
+
+	Returns:
+	    int: number of vertices
+
+	Raises:
+	    ValueError: if DIMENSION is not found in the file
+	"""
+	with open(fname) as f:
+		for line in f:
+			line = line.strip()
+			if ":" in line:
+				key, _, value = line.partition(":")
+				if key.strip().upper() == "DIMENSION":
+					return int(value.strip())
+			if line == "NODE_COORD_SECTION":
+				break  # no point reading further
+	raise ValueError(f"DIMENSION not found in {fname}")
 
 
 def read_tsplib_from_file(fname):
 	"""
 	Parse a TSPLIB format file and populate a TSPInstance.
-	
-	The TSPLIB format contains:
-	- Header fields with metadata (NAME, DIMENSION, EDGE_WEIGHT_TYPE, etc.)
-	- NODE_COORD_SECTION with vertex coordinates in format: index x y
-	
-	Args:
-	    fname: Path to the TSPLIB .tsp file
-	
-	Returns:
-	    TSPInstance object populated with data from the file
 	"""
 	lines = open(fname).readlines()
 	
