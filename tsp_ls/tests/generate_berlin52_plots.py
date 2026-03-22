@@ -1,38 +1,37 @@
-"""
-tests/generate_berlin52_plots.py
-=================================
-Generate PNG visualizations for the berlin52 instance.
-
-Outputs in results/plots/:
-  - berlin52__compare__gls_vs_sa.png   : GLS 2-opt vs SA 2-opt side by side
-  - berlin52__multi_gls.png            : grid of GLS variants
-  - berlin52__multi_sa.png             : grid of SA variants
-  - berlin52__multi_all.png            : all configs (best run)
-
-Usage (from project root):
-    python -m tests.generate_berlin52_plots
-    python tests/generate_berlin52_plots.py
-"""
+# tests/generate_berlin52_plots.py
+# ==================================
+# Generates PNG visualizations for the berlin52 instance.
+#
+# Outputs in results/plots/:
+#   - berlin52__compare__gls_vs_sa.png   : GLS 2-opt vs SA 2-opt side by side
+#   - berlin52__multi_gls.png            : grid of GLS variants
+#   - berlin52__multi_sa.png             : grid of SA variants
+#   - berlin52__multi_all.png            : all configs (best run)
+#
+# Usage (from project root):
+#     python -m tests.generate_berlin52_plots
+#     python tests/generate_berlin52_plots.py
 
 import sys
 import os
 
 # Allows running the script directly (python tests/generate_berlin52_plots.py)
-# without having to do python -m tests.generate_berlin52_plots
+# without having to use python -m tests.generate_berlin52_plots
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.tsp import read_tsplib_from_file
+from src.tsp import read_tsplib_from_file, tour_cost
+from src.init import random_tour
 from src.run import build_configs
 from src.visualize import plot_compare, plot_multi_configs
 
-# ─── Config ───────────────────────────────────────────────────────────────────
+# Config -------------------------------------------------------------------------
 
 TSP_PATH  = "DB/bioalg-proj01-tsplib/berlin52.tsp"
 OUT_DIR   = "results/plots"
-N_RUNS    = 30       # runs per config to keep the best solution
+N_RUNS    = 5       # runs per config to keep the best solution
 
 # Configs to include in each figure
-# (subsets of labels defined in run.py::build_configs)
+# (subsets of the labels defined in run.py::build_configs)
 CONFIGS_GLS = [
     "gls_naive_best__swap",
     "gls_naive_best__2-opt",
@@ -59,10 +58,10 @@ CONFIGS_SA = [
 CONFIG_LEFT  = "gls_opt__2-opt"
 CONFIG_RIGHT = "sa_opt__2-opt__exp_medium"
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# Helpers -------------------------------------------------------------------------
 
 def best_of(run_fn, n_runs):
-    """Run run_fn n_runs times and return the best (tour, cost)."""
+    """Runs run_fn n_runs times and returns the best (tour, cost)."""
     best_tour, best_cost = None, float("inf")
     for _ in range(n_runs):
         try:
@@ -75,7 +74,7 @@ def best_of(run_fn, n_runs):
 
 def run_configs(cfg_map, labels, instance, n_runs):
     """
-    Run a list of configs on the instance and return
+    Runs a list of configs on the instance and returns
     [(label, tour, cost), ...] (missing or failed configs are ignored).
     """
     results = []
@@ -92,22 +91,22 @@ def run_configs(cfg_map, labels, instance, n_runs):
             print(f"  ✗  {label}  — all runs failed")
     return results
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
+# Main --------------------------------------------------------------------------
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
 
     # Load the instance
-    print(f"Loading {TSP_PATH}...")
+    print(f"Loading {TSP_PATH} ...")
     instance = read_tsplib_from_file(TSP_PATH)
     instance.name = "berlin52"
-    print(f"  n = {instance.n} cities\n")
+    print(f"  n = {instance.n} vertices\n")
 
     # Build the config registry
     all_cfgs  = build_configs()
     cfg_map   = {c["label"]: c for c in all_cfgs}
 
-    # ── 1. GLS Grid ────────────────────────────────────────────────────────────
+    # 1. GLS Grid -----------------------------------------------------------------
     print("=== GLS Grid ===")
     gls_results = run_configs(cfg_map, CONFIGS_GLS, instance, N_RUNS)
     if gls_results:
@@ -115,7 +114,7 @@ def main():
         plot_multi_configs(gls_results, instance, cols=3, save_path=out)
     print()
 
-    # ── 2. SA Grid ─────────────────────────────────────────────────────────────
+    # 2. SA Grid ------------------------------------------------------------------
     print("=== SA Grid ===")
     sa_results = run_configs(cfg_map, CONFIGS_SA, instance, N_RUNS)
     if sa_results:
@@ -123,7 +122,7 @@ def main():
         plot_multi_configs(sa_results, instance, cols=3, save_path=out)
     print()
 
-    # ── 3. All Configs Grid ────────────────────────────────────────────────────
+    # 3. All Configs Grid ------------------------------------------------------------
     print("=== All Configs Grid ===")
     all_results = run_configs(cfg_map, list(cfg_map.keys()), instance, N_RUNS)
     if all_results:
@@ -131,8 +130,8 @@ def main():
         plot_multi_configs(all_results, instance, cols=4, save_path=out)
     print()
 
-    # ── 4. Side-by-side Comparison: GLS 2-opt vs SA 2-opt ────────────────────────
-    print("=== Side-by-side Comparison ===")
+    # 4. Side-by-Side Comparison: GLS 2-opt vs SA 2-opt ----------------------------
+    print("=== Side-by-Side Comparison ===")
     results_pair = run_configs(cfg_map, [CONFIG_LEFT, CONFIG_RIGHT], instance, N_RUNS)
     if len(results_pair) == 2:
         _, tour_left,  _ = results_pair[0]
