@@ -343,7 +343,56 @@ def build_configs():
 
 # ─── Runner ───────────────────────────────────────────────────────────────────
 
-def run_experiments(tsp_dir, out_path, n_runs, max_nodes=None, tsp_file=None):
+def _filter_configs(configs, args):
+    """
+    Filter configs by explicit labels or label substrings.
+
+    Rules:
+      - If args.configs is provided, keep exact label matches only.
+      - Otherwise, include configs whose label contains all include tokens
+        and none of the exclude tokens.
+    """
+    labels = {c["label"] for c in configs}
+
+    if args.configs:
+        missing = [c for c in args.configs if c not in labels]
+        if missing:
+            print(f"[WARN] Unknown configs ignored: {missing}")
+        return [c for c in configs if c["label"] in args.configs]
+
+    include_tokens = []
+    exclude_tokens = []
+
+    if args.include:
+        include_tokens.extend(args.include)
+    if args.exclude:
+        exclude_tokens.extend(args.exclude)
+
+    if args.algo:
+        include_tokens.append(args.algo)
+    if args.operator:
+        include_tokens.append(args.operator)
+    if args.schedule:
+        include_tokens.append(args.schedule)
+    if args.init:
+        include_tokens.append(f"init_{args.init}")
+
+    if not include_tokens and not exclude_tokens:
+        return configs
+
+    filtered = []
+    for cfg in configs:
+        label = cfg["label"]
+        if include_tokens and not all(tok in label for tok in include_tokens):
+            continue
+        if exclude_tokens and any(tok in label for tok in exclude_tokens):
+            continue
+        filtered.append(cfg)
+
+    return filtered
+
+
+def run_experiments(tsp_dir, out_path, n_runs, max_nodes=None, tsp_file=None, configs=None):
     import pandas as pd
 
     all_tsp_files = sorted([
@@ -379,7 +428,7 @@ def run_experiments(tsp_dir, out_path, n_runs, max_nodes=None, tsp_file=None):
             continue
         tsp_files.append(f)
 
-    configs = build_configs()
+    configs = configs or build_configs()
     total = len(tsp_files) * len(configs)
     done = 0
     print(f"\n{len(tsp_files)} instances retained, {len(configs)} configs → {total} experiment(s)\n")
@@ -491,6 +540,48 @@ def main():
         help=f"Number of repetitions per config (default: {N_RUNS})",
     )
     parser.add_argument(
+        "--configs",
+        nargs="+",
+        default=None,
+        help="Run only these config labels (exact match)",
+    )
+    parser.add_argument(
+        "--include",
+        nargs="+",
+        default=None,
+        help="Keep configs whose label contains all of these substrings",
+    )
+    parser.add_argument(
+        "--exclude",
+        nargs="+",
+        default=None,
+        help="Drop configs whose label contains any of these substrings",
+    )
+    parser.add_argument(
+        "--algo",
+        choices=["gls_naive_best", "gls_naive_first", "gls_opt", "sa_naive", "sa_opt"],
+        default=None,
+        help="Filter by algorithm family",
+    )
+    parser.add_argument(
+        "--operator",
+        choices=["swap", "2-opt", "or-opt", "or-opt-1", "or-opt-2", "or-opt-3"],
+        default=None,
+        help="Filter by neighborhood operator",
+    )
+    parser.add_argument(
+        "--schedule",
+        choices=["exp", "poly", "log"],
+        default=None,
+        help="Filter by SA cooling schedule token (exp, poly, log)",
+    )
+    parser.add_argument(
+        "--init",
+        choices=INIT_LABELS,
+        default=None,
+        help="Filter by initialization strategy (only configs that log init cost)",
+    )
+    parser.add_argument(
         "--max_nodes",
         type=int,
         default=None,
@@ -504,12 +595,19 @@ def main():
     print(f"Runs     : {args.runs}")
     print(f"Max nodes: {args.max_nodes if args.max_nodes else 'no limit'}")
 
+    all_configs = build_configs()
+    selected_configs = _filter_configs(all_configs, args)
+    if not selected_configs:
+        print("No configs match the provided filters.")
+        return
+
     run_experiments(
         tsp_dir=args.tsp_dir,
         out_path=args.out,
         n_runs=args.runs,
         max_nodes=args.max_nodes,
         tsp_file=args.tsp_file,
+        configs=selected_configs,
     )
 
 if __name__ == "__main__":
