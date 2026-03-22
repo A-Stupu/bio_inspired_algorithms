@@ -21,8 +21,7 @@ import os
 # without having to do python -m tests.generate_berlin52_plots
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.tsp import read_tsplib_from_file, tour_cost
-from src.init import random_tour
+from src.tsp import read_tsplib_from_file
 from src.run import build_configs
 from src.visualize import plot_compare, plot_multi_configs
 
@@ -30,7 +29,7 @@ from src.visualize import plot_compare, plot_multi_configs
 
 TSP_PATH  = "DB/bioalg-proj01-tsplib/berlin52.tsp"
 OUT_DIR   = "results/plots"
-N_RUNS    = 5       # runs per config to keep the best solution
+N_RUNS    = 30       # runs per config to keep the best solution
 
 # Configs to include in each figure
 # (subsets of labels defined in run.py::build_configs)

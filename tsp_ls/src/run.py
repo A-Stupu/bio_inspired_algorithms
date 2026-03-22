@@ -15,9 +15,7 @@ Usage:
 """
 
 import argparse
-import csv
 import os
-import random
 import time
 from statistics import mean, stdev
 
@@ -25,9 +23,8 @@ from .tsp import read_tsplib_from_file, read_tsplib_dimension, tour_cost
 from .tsp import (
     delta_cost_2opt,
     delta_cost_vertex_switch,
-    delta_cost_or_opt,
 )
-from .init import random_tour
+from .init import random_tour, INIT_STRATEGIES
 from .algorithms import (
     greedy_local_search_naive_best_improvement,
     greedy_local_search_naive_first_improvement,
@@ -39,16 +36,18 @@ from .algorithms import (
 from .operators import (
     vertex_switching_neighbors,
     two_opt_neighbors,
-    or_opt_neighbors,
     vertex_switching,
     two_opt,
-    or_opt,
     generate_vertex_switching_moves,
     generate_2opt_moves,
     generate_or_opt_moves,
     apply_vertex_switching,
     apply_2opt,
     apply_or_opt,
+    or_opt_neighbors_k,
+    or_opt_single_k,
+    or_opt_delta_fn_k,
+    generate_random_move_factory,
 )
 
 # ─── Constants ────────────────────────────────────────────────────────────────
@@ -61,67 +60,8 @@ SA_MIN_T = 1e-3
 def auto_initial_T(n):
     return max(100.0, n * 10.0)
 
-
-# ─── Helpers ──────────────────────────────────────────────────────────────────
-
-def or_opt_neighbors_k(k):
-    """Returns a neighbors function for Or-opt with segment length k."""
-    def fn(tour):
-        return or_opt_neighbors(tour, seg_len=k)
-    fn.__name__ = f"or_opt_{k}"
-    return fn
-
-def or_opt_single_k(k):
-    """Returns a random neighbor function for Or-opt with segment length k."""
-    def fn(tour):
-        return or_opt(tour, seg_len=k)
-    fn.__name__ = f"or_opt_{k}"
-    return fn
-
-def or_opt_delta_fn_k(k):
-    """
-    Delta function for Or-opt (only seg_len=1 is analytically supported here;
-    for k>1 we fall back to full recomputation via the naive approach).
-    """
-    if k == 1:
-        def fn(tour, instance, move):
-            i, insert_pos = move
-            return delta_cost_or_opt(tour, instance, i, insert_pos)
-    else:
-        def fn(tour, instance, move):
-            # Full recomputation fallback for seg_len > 1
-            i, insert_pos = move
-            node = tour[i]
-            trial = tour[:]
-            del trial[i]
-            adjusted = insert_pos - 1 if insert_pos > i else insert_pos
-            trial.insert(adjusted, node)
-            return tour_cost(trial, instance) - tour_cost(tour, instance)
-    fn.__name__ = f"delta_or_opt_{k}"
-    return fn
-
-
-def generate_random_move_factory(operator_name, seg_len=1):
-    """Returns a function that generates a random move (as indices) for SA optimized."""
-    def fn(tour):
-        n = len(tour)
-        if operator_name == "swap":
-            i, j = random.sample(range(n), 2)
-            return (min(i, j), max(i, j))
-        elif operator_name == "2-opt":
-            i, j = sorted(random.sample(range(n), 2))
-            while j - i < 2:
-                i, j = sorted(random.sample(range(n), 2))
-            return (i, j)
-        elif operator_name == "or-opt":
-            i = random.randint(0, n - 1)
-            insert_pos = random.randint(0, n - 1)
-            while insert_pos == i or insert_pos == (i + 1) % n:
-                insert_pos = random.randint(0, n - 1)
-            return (i, insert_pos)
-    fn.__name__ = f"random_move_{operator_name}"
-    return fn
-
+# Strategies exposed in configs
+INIT_LABELS = list(INIT_STRATEGIES.keys())   # ["random", "nearest_neighbor", "greedy_edge"]
 
 # ─── Configuration registry ───────────────────────────────────────────────────
 
@@ -344,8 +284,62 @@ def build_configs():
 
         configs.append({"label": label, "factory": make()})
 
-    return configs
+    # ── 9. GLS optimized 2-opt — comparison of init strategies ───────────────
+    for init_name in INIT_LABELS:
+        label = f"gls_opt__2-opt__init_{init_name}"
 
+        def make(iname=init_name):
+            def factory(instance):
+                init_fn = INIT_STRATEGIES[iname]
+
+                def run():
+                    tour = init_fn(instance)
+                    init_cost = tour_cost(tour, instance)   # cost before optimization
+                    final_tour, final_cost = greedy_local_search_optimized(
+                        tour=tour,
+                        instance=instance,
+                        generate_moves=generate_2opt_moves,
+                        delta_fn=lambda t, inst, m: delta_cost_2opt(t, inst, m[0], m[1]),
+                        apply_fn=apply_2opt,
+                        strategy="first",
+                    )
+                    return final_tour, final_cost, init_cost   # ← 3-value tuple
+                return run
+            return factory
+
+        configs.append({"label": label, "factory": make(), "logs_init_cost": True})
+
+    # ── 10. SA optimized 2-opt — comparison of init strategies ────────────────
+    for init_name in INIT_LABELS:
+        label = f"sa_opt__2-opt__exp_medium__init_{init_name}"
+
+        def make(iname=init_name):
+            def factory(instance):
+                T0 = auto_initial_T(instance.n)
+                init_fn = INIT_STRATEGIES[iname]
+
+                def run():
+                    tour = init_fn(instance)
+                    init_cost = tour_cost(tour, instance)   # cost before optimization
+                    cooling = make_cooling_schedule("exponential", T0=T0, alpha=0.995)
+                    final_tour, final_cost = simulated_annealing_optimized(
+                        tour=tour,
+                        instance=instance,
+                        generate_random_move=generate_random_move_factory("2-opt"),
+                        delta_fn=lambda t, inst, m: delta_cost_2opt(t, inst, m[0], m[1]),
+                        apply_fn=apply_2opt,
+                        T=T0,
+                        min_T=SA_MIN_T,
+                        update_T=cooling,
+                        max_iter=SA_MAX_ITER,
+                    )
+                    return final_tour, final_cost, init_cost   # ← 3-value tuple
+                return run
+            return factory
+
+        configs.append({"label": label, "factory": make(), "logs_init_cost": True})
+
+    return configs
 
 # ─── Runner ───────────────────────────────────────────────────────────────────
 
@@ -413,11 +407,18 @@ def run_experiments(tsp_dir, out_path, n_runs, max_nodes=None, tsp_file=None):
 
             costs = []
             times = []
+            logs_init = cfg.get("logs_init_cost", False)
+            init_costs = []
 
             for rep in range(n_runs):
                 t_start = time.perf_counter()
                 try:
-                    _, cost = run_fn()
+                    result = run_fn()
+                    if logs_init and len(result) == 3:
+                        _, cost, init_cost = result
+                        init_costs.append(init_cost)
+                    else:
+                        _, cost = result
                 except Exception as e:
                     print(f"    [ERROR] {label} rep {rep}: {e}")
                     cost = float("nan")
@@ -446,6 +447,10 @@ def run_experiments(tsp_dir, out_path, n_runs, max_nodes=None, tsp_file=None):
                 "std_cost":    round(std_cost, 2),
                 "mean_time_s": round(mean_time, 4),
                 "std_time_s":  round(std_time, 4),
+                "mean_init_cost": round(mean(init_costs), 2) if init_costs else None,
+                "improvement_pct": round(
+                    100 * (mean(init_costs) - mean_cost) / mean(init_costs), 2
+                ) if init_costs and mean(init_costs) > 0 else None,
             })
 
             done += 1
@@ -459,7 +464,6 @@ def run_experiments(tsp_dir, out_path, n_runs, max_nodes=None, tsp_file=None):
     df.to_csv(out_path, index=False)
     print(f"\n✓ Results saved to {out_path}")
     print(df.head(30).to_string())
-
 
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
@@ -507,7 +511,6 @@ def main():
         max_nodes=args.max_nodes,
         tsp_file=args.tsp_file,
     )
-
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,6 @@
 # operators.py
 import random
+from .tsp import delta_cost_or_opt, tour_cost
 
 ### Neighborhood operators ###
 
@@ -160,6 +161,67 @@ def apply_or_opt(tour, move):
 # delta = delta_fn(tour, instance, move)
 # then
 # apply_fn(tour, move)
+
+### other ###
+
+def or_opt_neighbors_k(k):
+    """Returns a neighbors function for Or-opt with segment length k."""
+    def fn(tour):
+        return or_opt_neighbors(tour, seg_len=k)
+    fn.__name__ = f"or_opt_{k}"
+    return fn
+
+def or_opt_single_k(k):
+    """Returns a random neighbor function for Or-opt with segment length k."""
+    def fn(tour):
+        return or_opt(tour, seg_len=k)
+    fn.__name__ = f"or_opt_{k}"
+    return fn
+
+def or_opt_delta_fn_k(k):
+    """
+    Delta function for Or-opt (only seg_len=1 is analytically supported here;
+    for k>1 we fall back to full recomputation via the naive approach).
+    """
+    if k == 1:
+        def fn(tour, instance, move):
+            i, insert_pos = move
+            return delta_cost_or_opt(tour, instance, i, insert_pos)
+    else:
+        def fn(tour, instance, move):
+            # Full recomputation fallback for seg_len > 1
+            i, insert_pos = move
+            node = tour[i]
+            trial = tour[:]
+            del trial[i]
+            adjusted = insert_pos - 1 if insert_pos > i else insert_pos
+            trial.insert(adjusted, node)
+            return tour_cost(trial, instance) - tour_cost(tour, instance)
+    fn.__name__ = f"delta_or_opt_{k}"
+    return fn
+
+def generate_random_move_factory(operator_name, seg_len=1):
+    """Returns a function that generates a random move (as indices) for SA optimized."""
+    def fn(tour):
+        n = len(tour)
+        if operator_name == "swap":
+            i, j = random.sample(range(n), 2)
+            return (min(i, j), max(i, j))
+        elif operator_name == "2-opt":
+            i, j = sorted(random.sample(range(n), 2))
+            while j - i < 2:
+                i, j = sorted(random.sample(range(n), 2))
+            return (i, j)
+        elif operator_name == "or-opt":
+            i = random.randint(0, n - 1)
+            insert_pos = random.randint(0, n - 1)
+            while insert_pos == i or insert_pos == (i + 1) % n:
+                insert_pos = random.randint(0, n - 1)
+            return (i, insert_pos)
+    fn.__name__ = f"random_move_{operator_name}"
+    return fn
+
+
 
 ### references ###
 
