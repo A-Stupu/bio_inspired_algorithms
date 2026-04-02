@@ -1,0 +1,14 @@
+This .zip archive contains instances for the project on symbolic regression of Bio-Inspired Algorithms.
+
+The filename of each instance follows a structure that indicates some information about them, e.g. sr_poly_4.txt:
+
+- All instances start with "sr_" and end in ".txt".
+- After this first part, instances include one of the following keywords:
+  + poly: instances which follow a polynomial function with integer coefficients;
+  + ratio: instances which follow a ratio of two polynomials;
+  + approx: functions which follow different forms that cannot be captured by solutions and must be approximated;
+  + periodic: periodic functions.
+- The last part of the filename is a number, which indicates an identifying number within each category.
+
+
+Each instance follows the following format: in the first line, a single integer n specifies the number of data points to follow; the following n lines contain two real numbers separated by a space, corresponding to x and y respectively.
