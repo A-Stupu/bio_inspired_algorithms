@@ -22,7 +22,7 @@ symbolic_regression/
 │   ├── selection.py         ← Tournament, elitist, over-selection
 │   ├── gp.py                ← Main GP evolutionary loop
 │   └── data.py              ← Instance file loader
-├── instances/               ← Put sr_*.txt data files here
+├── instances/               ← sr_*.txt data files
 ├── tests/
 │   └── test_all.py          ← Unit tests
 └── README.md
@@ -33,13 +33,13 @@ symbolic_regression/
 ### Single instance
 
 ```bash
-python main.py instances/sr_poly_4.txt
+python main.py instances/sr_poly_04.txt
 ```
 
 ### With custom parameters
 
 ```bash
-python main.py instances/sr_poly_4.txt \
+python main.py instances/sr_poly_04.txt \
     --pop-size 300 --generations 500 --restarts 5 \
     --complexity-weight 0.005 --verbose 2
 ```
