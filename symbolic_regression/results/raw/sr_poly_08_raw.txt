@@ -1,0 +1,17 @@
+Instance: sr_poly_08.txt  type=poly  id=08  n=11
+Config: pop=200  gen=300  restarts=1
+
+Trial 1:  RMSE=0.281728  size=17  t=18.1s
+  expr: 8.59814 / (8.7358 + x * 8.21199 - 2.98936) + x + -4.34731 - x * -1.90243
+Trial 2:  RMSE=0.557279  size=7  t=2.5s
+  expr: x + x + x - 4
+Trial 3:  RMSE=0.557279  size=13  t=3.7s
+  expr: -9 + -9 + x + x - -7 + x - -7
+Trial 4:  RMSE=0.303862  size=13  t=7.5s
+  expr: x - (x - -3.63572) / 2.81738 + x + x - 1.99951
+Trial 5:  RMSE=0.632246  size=7  t=6.5s
+  expr: x - (x**2 - 5.60313) / -2.64576
+
+Best trial (1)  RMSE=0.281728
+  Expression: 8.59814 / (8.7358 + x * 8.21199 - 2.98936) + x + -4.34731 - x * -1.90243
+

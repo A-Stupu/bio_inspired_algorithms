@@ -1,0 +1,17 @@
+Instance: sr_ratio_02.txt  type=ratio  id=02  n=11
+Config: pop=200  gen=300  restarts=1
+
+Trial 1:  RMSE=1.2859  size=1  t=1.4s
+  expr: 6.32412
+Trial 2:  RMSE=1.2859  size=1  t=1.5s
+  expr: 6.32513
+Trial 3:  RMSE=1.2859  size=1  t=0.9s
+  expr: 6.32788
+Trial 4:  RMSE=1.2859  size=1  t=0.7s
+  expr: 6.32545
+Trial 5:  RMSE=1.2859  size=1  t=1.5s
+  expr: 6.32389
+
+Best trial (5)  RMSE=1.2859
+  Expression: 6.32389
+

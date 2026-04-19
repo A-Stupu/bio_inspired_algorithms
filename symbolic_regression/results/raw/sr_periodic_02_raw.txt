@@ -1,0 +1,17 @@
+Instance: sr_periodic_02.txt  type=periodic  id=02  n=41
+Config: pop=200  gen=300  restarts=1
+
+Trial 1:  RMSE=0.877535  size=5  t=2.8s
+  expr: 0.286277 * (2 - x)
+Trial 2:  RMSE=0.842873  size=11  t=10.5s
+  expr: (-18.6856 - -3 * x**4 / (x**2 - 0.9)) / -37.1198
+Trial 3:  RMSE=0.876735  size=5  t=3.0s
+  expr: (-2 + x) / -3.16078
+Trial 4:  RMSE=0.75888  size=13  t=14.0s
+  expr: (1.8242 - x**4 - x**4) / (x**5 * x**5 / 8.4928 - -1.79418)
+Trial 5:  RMSE=0.757837  size=25  t=10.2s
+  expr: (x + x + x + x + x - 5) / (x + x + x**2 + x + x - 4.5544 - x**5)
+
+Best trial (5)  RMSE=0.757837
+  Expression: (x + x + x + x + x - 5) / (x + x + x**2 + x + x - 4.5544 - x**5)
+

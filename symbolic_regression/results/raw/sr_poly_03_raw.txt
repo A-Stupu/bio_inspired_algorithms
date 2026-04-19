@@ -1,0 +1,17 @@
+Instance: sr_poly_03.txt  type=poly  id=03  n=11
+Config: pop=200  gen=300  restarts=1
+
+Trial 1:  RMSE=0.212891  size=5  t=4.5s
+  expr: 5.57617 - x**2 / 10.6661
+Trial 2:  RMSE=0.000225786  size=13  t=5.1s
+  expr: 4 - (x - 4 - (x - 4) / 3) / 2.66722
+Trial 3:  RMSE=0.790571  size=1  t=0.9s
+  expr: 4.75147
+Trial 4:  RMSE=0.251222  size=7  t=8.1s
+  expr: 10 / (x**3 + 5.38743) + 3.99047
+Trial 5:  RMSE=0  size=7  t=3.7s
+  expr: (x - 4) / -2 + 4
+
+Best trial (5)  RMSE=0
+  Expression: (x - 4) / -2 + 4
+

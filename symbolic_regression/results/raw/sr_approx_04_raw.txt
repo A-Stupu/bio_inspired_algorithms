@@ -1,0 +1,17 @@
+Instance: sr_approx_04.txt  type=approx  id=04  n=11
+Config: pop=200  gen=300  restarts=1
+
+Trial 1:  RMSE=0.12458  size=7  t=6.2s
+  expr: 1.90292 / (1.93982 + x + x)
+Trial 2:  RMSE=0.0661591  size=7  t=7.8s
+  expr: (-6.14717 / (x**3 - -7.70973)) / -1.01772
+Trial 3:  RMSE=0.064772  size=5  t=3.5s
+  expr: 5.3975 / (x**3 - -6.76201)
+Trial 4:  RMSE=0.0654353  size=5  t=5.9s
+  expr: 5.81541 / (x**3 + 7.34544)
+Trial 5:  RMSE=0.12469  size=5  t=2.5s
+  expr: 0.964149 / (x + 0.999113)
+
+Best trial (3)  RMSE=0.064772
+  Expression: 5.3975 / (x**3 - -6.76201)
+

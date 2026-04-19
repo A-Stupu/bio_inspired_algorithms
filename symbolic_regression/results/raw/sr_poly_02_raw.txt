@@ -1,0 +1,17 @@
+Instance: sr_poly_02.txt  type=poly  id=02  n=11
+Config: pop=200  gen=300  restarts=1
+
+Trial 1:  RMSE=0  size=5  t=7.2s
+  expr: x + x - -3
+Trial 2:  RMSE=0  size=5  t=2.5s
+  expr: x + x + 3
+Trial 3:  RMSE=0  size=5  t=6.7s
+  expr: 2 * x - -3
+Trial 4:  RMSE=0  size=5  t=1.6s
+  expr: 3 + x + x
+Trial 5:  RMSE=0  size=7  t=2.2s
+  expr: x - 1 + 4 + x
+
+Best trial (1)  RMSE=0
+  Expression: x + x - -3
+

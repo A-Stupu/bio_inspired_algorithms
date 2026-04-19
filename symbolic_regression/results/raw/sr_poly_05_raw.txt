@@ -1,0 +1,17 @@
+Instance: sr_poly_05.txt  type=poly  id=05  n=11
+Config: pop=200  gen=300  restarts=1
+
+Trial 1:  RMSE=0  size=9  t=2.7s
+  expr: x * x + 0 - x - x
+Trial 2:  RMSE=0  size=11  t=3.2s
+  expr: x**2 + -2 - x - 1 - x - 1
+Trial 3:  RMSE=0.572137  size=7  t=2.5s
+  expr: x**4 / (2.67396 + 14 + x**2)
+Trial 4:  RMSE=0.388801  size=5  t=3.2s
+  expr: (x**3 - 5.37586) / 7.73333
+Trial 5:  RMSE=0  size=5  t=1.6s
+  expr: (x + -2) * x
+
+Best trial (1)  RMSE=0
+  Expression: x * x + 0 - x - x
+
