@@ -1,116 +1,131 @@
-# Symbolic Regression — Genetic Programming
+# Symbolic Regression - Genetic Programming
 
 Project II for the Bio-Inspired Algorithms course (ESIEE Paris, 2026).
-
-## Requirements
-
-Python ≥ 3.10 (uses `str | None` union syntax).  No external dependencies.
-
-```
-pip install pytest   # only needed to run the test suite
-```
 
 ## Project Structure
 
 ```
 symbolic_regression/
-├── main.py                  ← CLI entry point
+├── main.py                  <- CLI: run GP on one instance or in batch
+├── run_experiments.py       <- Reproduce all results from the report
 ├── src/
-│   ├── tree.py              ← Node class + random tree generators
-│   ├── fitness.py           ← MSE + complexity-penalised fitness
-│   ├── operators.py         ← Mutation & crossover operators
-│   ├── selection.py         ← Tournament, elitist, over-selection
-│   ├── gp.py                ← Main GP evolutionary loop
-│   └── data.py              ← Instance file loader
-├── instances/               ← sr_*.txt data files
+│   ├── tree.py              <- Node class + random tree generators
+│   ├── fitness.py           <- MSE + complexity-penalised fitness
+│   ├── operators.py         <- Mutation & crossover operators
+│   ├── selection.py         <- Tournament, elitist, over-selection
+│   ├── gp.py                <- Main GP evolutionary loop
+│   └── data.py              <- Instance file loader
+├── instances/               <- sr_*.txt data files
+├── results/                 <- Output directory (created on run)
+│   ├── summary.txt          <- Human-readable results table
+│   ├── results.csv          <- Full data (one row per instance)
+│   └── raw/                 <- Per-instance trial detail files
 ├── tests/
-│   └── test_all.py          ← Unit tests
+│   └── test_all.py          <- Unit tests (21 tests)
 └── README.md
 ```
 
-## Running
+## Run experiments
 
-### Single instance
-
-```bash
-python main.py instances/sr_poly_04.txt
-```
-
-### With custom parameters
+Run on a single instance:
 
 ```bash
-python main.py instances/sr_poly_04.txt \
-    --pop-size 300 --generations 500 --restarts 5 \
-    --complexity-weight 0.005 --verbose 2
+python main.py instances/sr_poly_01.txt
 ```
 
-### Batch mode (all instances in a directory)
+Reproduce all experimental results:
 
 ```bash
-python main.py --batch instances/ --output-dir results/
+python run_experiments.py
 ```
 
-### Full parameter reference
-
-```
-usage: symbolic_regression [-h] [--batch] [--pop-size N] [--generations N]
-                            [--restarts N] [--max-depth N] [--max-depth-init N]
-                            [--tournament-k N] [--elite-count N] [--patience N]
-                            [--p-crossover P] [--p-subtree-mutation P]
-                            [--p-point-mutation P] [--p-hoist-mutation P]
-                            [--complexity-weight W] [--verbose {0,1,2}]
-                            [--output-dir DIR]
-                            [input]
-```
-
-### Run tests
+Parameters used in the report:
 
 ```bash
-python -m pytest tests/ -v
+python run_experiments.py \
+    --trials 5 --pop-size 200 --generations 300
 ```
+
+
+This runs every `sr_*.txt` file found in `instances/` with 5 independent trials each
+and writes three output files to `results/`:
+
+| File | Contents |
+|---|---|
+| `results/summary.txt` | Formatted table grouped by instance type |
+| `results/results.csv` | Full data (best/mean/std RMSE, expression, size, time) |
+| `results/raw/*.txt`   | Per-instance trial-by-trial detail |
+
+
+
+## Command-Line Options
+
+
+
+```
+python run_experiments.py [options]
+
+  --instances-dir DIR     Directory containing sr_*.txt files      (default: instances/)
+  --output-dir DIR        Where to write results                   (default: results/)
+  --trials N              Independent trials per instance          (default: 5)
+  --pop-size N            (same options as main.py above ...)
+  --generations N
+  ...
+```
+
 
 ## Algorithm
 
 ### Representation
 
-Individuals are binary expression trees (genotype = phenotype here).
+Individuals are binary expression trees. The genotype is the tree structure; the phenotype
+is the mathematical expression it encodes, output as a Python-evaluable string.
 
-- **Internal nodes**: binary operators `+`, `-`, `*`, `/`
-- **Terminal nodes**:
-  - `x` — the variable
-  - constants (integer values by default, evolved via Gaussian mutation)
-  - `x**a` for `a ∈ {2,3,4,5}` — power terms
+- Internal nodes: binary operators `+`, `-`, `*`, `/`
+- Terminal nodes:
+  - `x` - the variable
+  - integer constants, evolved via Gaussian mutation
+  - `x**a` for `a` in {2, 3, 4, 5} - power terms
 
 ### Fitness
 
 ```
-fitness = MSE(f, data) + complexity_weight × size(tree)
+fitness(f) = MSE(f, data) + complexity_weight * size(tree)
 ```
 
-Lower is better. The complexity penalty controls bloat.
+Lower is better. The complexity penalty discourages bloat without preventing the
+algorithm from building larger expressions when they genuinely improve the fit.
 
 ### Variation operators
 
-| Operator | Probability (default) | Description |
+| Operator | Default probability | Description |
 |---|---|---|
-| Subtree crossover | 70 % | Exchange random subtrees between two parents |
-| Subtree mutation  | 10 % | Replace a random node with a new random subtree |
-| Point mutation    | 10 % | Modify a terminal (nudge constant, change operator) |
-| Hoist mutation    |  5 % | Replace a node with one of its subtrees (shrinks tree) |
-| Reproduction      |  5 % | Copy parent unchanged |
+| Subtree crossover | 70% | Exchange a random subtree between two parents |
+| Subtree mutation  | 10% | Replace a random node with a new random subtree |
+| Point mutation    | 10% | Nudge a constant, change an operator, or alter an exponent |
+| Hoist mutation    |  5% | Replace a node with one of its own subtrees (shrinks tree) |
+| Reproduction      |  5% | Copy a parent unchanged |
+
+Crossover is applied first (with `subtree_crossover`), and constant folding is run
+on each resulting child to simplify constant sub-expressions before evaluation.
 
 ### Selection
 
-- **Parent selection**: k-tournament (k=7 by default)
-- **Survivor selection**: (µ+λ) elitist — keep the best `pop_size` individuals from parents ∪ children, with a guaranteed `elite_count` from the previous generation.
+- Parent selection: k-tournament (default k = 7)
+- Survivor selection: (mu + lambda) elitist — combine parents and children, keep
+  the best `pop_size` overall, with at least `elite_count` from the previous generation.
 
 ### Bloat control
 
-- `hoist_mutation` reduces tree size directly.
-- `constant_folding` simplifies constant sub-expressions.
-- `complexity_weight` penalty in fitness.
-- `max_depth` hard limit on tree depth after crossover.
+Four complementary mechanisms limit tree growth:
 
-### Restarts
+1. `complexity_weight` penalty in the fitness function
+2. `max_depth` hard cap enforced after every crossover
+3. `hoist_mutation` operator, which actively reduces tree size
+4. `constant_folding` simplifies sub-trees of constants into a single node
 
-The algorithm is run `--restarts` times independently; the best result overall is returned.
+### Restarts and trials
+
+`main.py --restarts N` runs N independent evolutions and returns the best result.
+`run_experiments.py --trials N` runs the whole GP (including its restarts) N times
+independently to estimate mean and standard deviation across runs.
