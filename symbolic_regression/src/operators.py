@@ -54,23 +54,29 @@ def point_mutation(root: Node,
                    sigma: float = 1.0) -> Node:
     """
     Point mutation: modify a randomly chosen terminal node.
-    - CONST  → add Gaussian noise or resample
-    - X      → replace with a random terminal
-    - POW    → change exponent by ±1
-    - operator → randomly pick another operator
+    - CONST    -> multi-scale Gaussian nudge or full resample (float-aware)
+    - X        -> replace with a random terminal
+    - POW      -> change exponent by +/-1
+    - operator -> randomly pick another operator
     """
     root = root.clone()
     path, node = _pick_random_node(root)
 
     if node.node_type == TERMINAL_CONST:
-        if random.random() < 0.7:
+        r = random.random()
+        if r < 0.50:
+            # Fine-grained nudge: scale sigma to magnitude so we can
+            # converge toward irrational values (pi, e, sqrt(2), ...)
+            scale = max(abs(node.value) * 0.1, sigma * 0.1)
+            node.value += random.gauss(0, scale)
+        elif r < 0.80:
+            # Coarse nudge (original behaviour)
             node.value += random.gauss(0, sigma)
-            # Round to nearby integer occasionally
-            if random.random() < 0.3:
-                node.value = float(round(node.value))
         else:
-            v = float(random.randint(int(const_range[0]), int(const_range[1])))
-            node.value = v if v != 0 else 1.0
+            # Full resample as float (not just integer)
+            node.value = random.uniform(const_range[0], const_range[1])
+            if abs(node.value) < 1e-6:
+                node.value = 1.0
 
     elif node.node_type == TERMINAL_POW:
         delta = random.choice([-1, 1])
@@ -81,8 +87,7 @@ def point_mutation(root: Node,
         new_node = get_node(
             set_node(root, path,
                      Node(TERMINAL_CONST,
-                          value=float(random.randint(int(const_range[0]),
-                                                     int(const_range[1]))))),
+                          value=random.uniform(const_range[0], const_range[1]))),
             path
         )
 
@@ -169,3 +174,56 @@ def subtree_crossover(parent1: Node, parent2: Node,
         child2 = parent2.clone()
 
     return child1, child2
+
+
+# -- Constant optimisation (local search) -------------------------------------
+
+def optimise_constants(root: Node,
+                       data: list[tuple[float, float]],
+                       n_steps: int = 40,
+                       sigma_init: float = 0.5) -> Node:
+    """
+    Hill-climbing local search on the constant leaves of a fixed tree structure.
+
+    For each constant node, try a Gaussian perturbation; keep it if MSE improves.
+    Multiple passes with decaying sigma (simulated annealing-like schedule).
+
+    This is especially useful for challenge instances that involve irrational
+    constants (pi, e, sqrt(2), ...) which the main GP struggles to pin down.
+
+    Parameters
+    ----------
+    root      : tree whose structure is kept fixed
+    data      : training data
+    n_steps   : total number of perturbation attempts per constant per pass
+    sigma_init: initial standard deviation for perturbations
+    """
+    from src.fitness import mse as _mse
+
+    best = root.clone()
+    best_mse = _mse(best, data)
+
+    # Collect paths to all constant nodes
+    const_paths = [p for p, n in collect_nodes(best) if n.node_type == TERMINAL_CONST]
+    if not const_paths:
+        return best
+
+    sigma = sigma_init
+    for step in range(n_steps):
+        # Decay sigma geometrically
+        sigma = sigma_init * (0.3 ** (step / n_steps))
+
+        for path in const_paths:
+            node = get_node(best, path)
+            orig = node.value
+
+            # Try a perturbation
+            node.value = orig + random.gauss(0, max(sigma, abs(orig) * 0.05))
+            new_mse = _mse(best, data)
+
+            if new_mse < best_mse:
+                best_mse = new_mse          # accept
+            else:
+                node.value = orig           # reject
+
+    return best

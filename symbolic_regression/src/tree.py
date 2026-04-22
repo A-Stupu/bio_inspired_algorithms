@@ -139,9 +139,12 @@ def _random_terminal(const_range: tuple[float, float] = (-10.0, 10.0)) -> Node:
         exp = random.randint(2, MAX_POWER)
         return Node(TERMINAL_POW, value=exp)
     else:
-        # Integer constants are more interpretable
-        v = float(random.randint(int(const_range[0]), int(const_range[1])))
-        if v == 0:
+        # Mix of integers (interpretable) and floats
+        if random.random() < 0.5:
+            v = float(random.randint(int(const_range[0]), int(const_range[1])))
+        else:
+            v = random.uniform(const_range[0], const_range[1])
+        if abs(v) < 1e-6:
             v = 1.0
         return Node(TERMINAL_CONST, value=v)
 

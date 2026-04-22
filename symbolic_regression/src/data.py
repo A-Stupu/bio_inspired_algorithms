@@ -42,16 +42,25 @@ def load_instance(filepath: str) -> tuple[list[tuple[float, float]], dict]:
 
 def _parse_filename(fname: str) -> dict:
     """
-    Extract type and id from filenames like sr_poly_4.txt.
+    Extract type and id from filenames.
+
+    Handles both simple types (sr_poly_4.txt)
+    and compound types (sr_challenge_a_01.txt).
     """
     stem = fname.replace('.txt', '')
     parts = stem.split('_')
 
-    meta = {'filename': fname, 'type': 'unknown', 'id': '?'}
-    known_types = {'poly', 'ratio', 'approx', 'periodic'}
+    meta        = {'filename': fname, 'type': 'unknown', 'id': '?'}
+    simple_types  = {'poly', 'ratio', 'approx', 'periodic'}
+    compound_types = {'challenge'}
 
     for i, p in enumerate(parts):
-        if p in known_types:
+        if p in compound_types and i + 1 < len(parts):
+            meta['type'] = p + '_' + parts[i + 1]   # e.g. challenge_a
+            if i + 2 < len(parts):
+                meta['id'] = parts[i + 2]
+            break
+        if p in simple_types:
             meta['type'] = p
             if i + 1 < len(parts):
                 meta['id'] = parts[i + 1]

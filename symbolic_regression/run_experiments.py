@@ -36,7 +36,7 @@ from src.gp      import run_gp, GPConfig
 from src.fitness import mse, rmse
 
 
-# ── Experiment configuration (edit here or via CLI) ───────────────────────────
+# -- Experiment configuration (edit here or via CLI) ---------------------------
 
 N_TRIALS        = 5      # independent runs per instance
 POP_SIZE        = 200
@@ -57,7 +57,7 @@ INSTANCES_DIR   = 'instances'
 OUTPUT_DIR      = 'results'
 
 
-# ── Result data structure ─────────────────────────────────────────────────────
+# -- Result data structure -----------------------------------------------------
 
 @dataclass
 class TrialResult:
@@ -87,7 +87,7 @@ class InstanceSummary:
     mean_time_sec:  float
 
 
-# ── Core experiment runner ────────────────────────────────────────────────────
+# -- Core experiment runner ----------------------------------------------------
 
 def make_config(args) -> GPConfig:
     return GPConfig(
@@ -142,7 +142,7 @@ def run_instance_trials(filepath: str, cfg: GPConfig,
               f"size={best_node.size()}  t={elapsed:.1f}s",
               flush=True)
 
-    # ── Write raw per-trial file ───────────────────────────────────────────────
+    # -- Write raw per-trial file -----------------------------------------------
     os.makedirs(raw_dir, exist_ok=True)
     raw_path = os.path.join(raw_dir, fname.replace('.txt', '_raw.txt'))
     with open(raw_path, 'w') as f:
@@ -165,7 +165,7 @@ def run_instance_trials(filepath: str, cfg: GPConfig,
         #  the last run which might differ; for the report the RMSE column is what
         #  matters)
 
-    # ── Aggregate ─────────────────────────────────────────────────────────────
+    # -- Aggregate -------------------------------------------------------------
     rmse_values = [tr.rmse for tr in trials]
     best_tr     = min(trials, key=lambda x: x.rmse)
 
@@ -196,7 +196,7 @@ def _std(values: list[float]) -> float:
     return math.sqrt(sum((v - m) ** 2 for v in values) / (len(values) - 1))
 
 
-# ── Report writers ────────────────────────────────────────────────────────────
+# -- Report writers ------------------------------------------------------------
 
 def write_csv(summaries: list[InstanceSummary], path: str):
     fields = list(asdict(summaries[0]).keys())
@@ -218,7 +218,7 @@ def write_summary(summaries: list[InstanceSummary], path: str, cfg: GPConfig,
         "SYMBOLIC REGRESSION — EXPERIMENTAL RESULTS",
         "=" * 72,
         "",
-        "── Configuration ─────────────────────────────────────────────────────",
+        "-- Configuration -----------------------------------------------------",
         f"  Population size     : {cfg.pop_size}",
         f"  Max generations     : {cfg.max_generations}",
         f"  Restarts per trial  : {cfg.n_restarts}",
@@ -244,7 +244,7 @@ def write_summary(summaries: list[InstanceSummary], path: str, cfg: GPConfig,
             continue
 
         lines += [
-            f"── {itype.upper()} instances ─────────────────────────────────────────────",
+            f"-- {itype.upper()} instances ---------------------------------------------",
             "",
             f"  {'Instance':<20} {'n':>4}  {'Best RMSE':>12}  "
             f"{'Mean RMSE':>12}  {'Std RMSE':>10}  {'Size':>5}  {'Best expression'}",
@@ -259,7 +259,7 @@ def write_summary(summaries: list[InstanceSummary], path: str, cfg: GPConfig,
         lines.append("")
 
     lines += [
-        "── Overall ────────────────────────────────────────────────────────────",
+        "-- Overall ------------------------------------------------------------",
         "",
     ]
 
@@ -289,7 +289,7 @@ def _median(values: list[float]) -> float:
     return (s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2)
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+# -- CLI -----------------------------------------------------------------------
 
 def build_parser():
     p = argparse.ArgumentParser(
@@ -316,7 +316,7 @@ def build_parser():
     return p
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# -- Main ----------------------------------------------------------------------
 
 def main():
     parser = build_parser()
