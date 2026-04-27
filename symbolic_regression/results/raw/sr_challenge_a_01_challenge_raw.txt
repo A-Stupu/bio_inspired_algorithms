@@ -1,0 +1,32 @@
+Instance : sr_challenge_a_01.txt  level=a  id=01  n=11
+Config   : pop=300  gen=500  patience=120
+
+Trial 1: RMSE=0.297199  size=13  t=55.9s
+  expr: (x + -0.508367 + 3.46765) * (x + -9.58433) * x * -0.0827061
+Trial 2: RMSE=0.00120581  size=11  t=18.4s
+  expr: x + x + x + (x / -3.7006) / -1.90082
+Trial 3: RMSE=0.00123327  size=3  t=6.2s
+  expr: 3.14223 * x
+Trial 4: RMSE=0.00143585  size=9  t=23.5s
+  expr: x + x / 7.022 + x + x
+Trial 5: RMSE=0.00129371  size=3  t=24.3s
+  expr: x * 3.14199
+
+Best before opt : RMSE=0.00120581
+  x + x + x + (x / -3.7006) / -1.90082
+
+Best after  opt : RMSE=0.00120581
+  x + x + x + (x / -3.7006) / -1.90082
+
+Predictions (after opt):
+  x=  0.0000  y=    0.0000  f(x)=    0.0000  err=0
+  x=  0.5000  y=    1.5710  f(x)=    1.5711  err=8.158e-05
+  x=  1.0000  y=    3.1420  f(x)=    3.1422  err=0.0001632
+  x=  1.5000  y=    4.7120  f(x)=    4.7132  err=0.001245
+  x=  2.0000  y=    6.2830  f(x)=    6.2843  err=0.001326
+  x=  2.5000  y=    7.8540  f(x)=    7.8554  err=0.001408
+  x=  3.0000  y=    9.4250  f(x)=    9.4265  err=0.001489
+  x=  3.5000  y=   11.0000  f(x)=   10.9976  err=0.002429
+  x=  4.0000  y=   12.5700  f(x)=   12.5687  err=0.001347
+  x=  4.5000  y=   14.1400  f(x)=   14.1397  err=0.0002658
+  x=  5.0000  y=   15.7100  f(x)=   15.7108  err=0.0008158

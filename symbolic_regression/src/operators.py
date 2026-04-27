@@ -20,7 +20,7 @@ from src.tree import (
 )
 
 
-# -- helpers -------------------------------------------------------------------
+# ── helpers ───────────────────────────────────────────────────────────────────
 
 def _pick_random_node(root: Node) -> tuple[list, Node]:
     """Return a (path, node) chosen uniformly at random."""
@@ -36,7 +36,7 @@ def _pick_internal_node(root: Node) -> tuple[list, Node] | None:
     return random.choice(internals)
 
 
-# -- Mutation ------------------------------------------------------------------
+# ── Mutation ──────────────────────────────────────────────────────────────────
 
 def subtree_mutation(root: Node, max_depth: int = 4,
                      const_range: tuple[float, float] = (-10.0, 10.0)) -> Node:
@@ -144,7 +144,7 @@ def _fold(node: Node):
             pass
 
 
-# -- Crossover -----------------------------------------------------------------
+# ── Crossover ─────────────────────────────────────────────────────────────────
 
 def subtree_crossover(parent1: Node, parent2: Node,
                       max_depth: int = 8) -> tuple[Node, Node]:
@@ -176,7 +176,7 @@ def subtree_crossover(parent1: Node, parent2: Node,
     return child1, child2
 
 
-# -- Constant optimisation (local search) -------------------------------------
+# ── Constant optimisation (local search) ─────────────────────────────────────
 
 def optimise_constants(root: Node,
                        data: list[tuple[float, float]],
@@ -227,3 +227,259 @@ def optimise_constants(root: Node,
                 node.value = orig           # reject
 
     return best
+
+
+# ── Structure-aware rational seeding ─────────────────────────────────────────
+
+def make_rational_seed(a: float, b: float, c: float, d: float) -> 'Node':
+    """
+    Build the tree (a + b*x) / (c + d*x^2) explicitly.
+    Used to seed the population for ratio instances.
+    Structure: div( add(const_a, mul(const_b, x)), add(const_c, mul(const_d, pow2)) )
+    """
+    num = Node('+',
+               left=Node(TERMINAL_CONST, value=a),
+               right=Node('*',
+                          left=Node(TERMINAL_CONST, value=b),
+                          right=Node(TERMINAL_X)))
+    den = Node('+',
+               left=Node(TERMINAL_CONST, value=c),
+               right=Node('*',
+                          left=Node(TERMINAL_CONST, value=d),
+                          right=Node(TERMINAL_POW, value=2)))
+    return Node('/', left=num, right=den)
+
+
+def seed_rational_population(data: list, n: int = 20,
+                              const_range: tuple = (-10.0, 10.0)) -> list:
+    """
+    Generate n rational seeds of the form (a+b*x)/(c+d*x^2) with
+    constants optimised by hill-climbing.
+
+    All seeds have b != 0 to ensure the x term in the numerator is present —
+    this is critical for functions like (3+x)/(2+x^2) where a purely
+    constant numerator gives a structurally different (worse) approximation.
+    """
+    import random as _random
+    seeds = []
+    for _ in range(n):
+        a = _random.uniform(*const_range)
+        # b is always non-zero so numerator always contains x
+        b = _random.uniform(0.1, const_range[1]) * _random.choice([-1, 1])
+        c = abs(_random.uniform(0.5, const_range[1]))  # positive denominator const
+        d = abs(_random.uniform(0.1, 3.0))
+        node = make_rational_seed(a, b, c, d)
+        node = optimise_constants(node, data, n_steps=80, sigma_init=1.0)
+        seeds.append(node)
+    return seeds
+
+
+# ── Factored polynomial seeding ───────────────────────────────────────────────
+
+def make_factored_poly(roots: list[float], leading: float = 1.0) -> 'Node':
+    """
+    Build the tree  leading * (x + roots[0]) * (x + roots[1]) * ...
+    Roots are stored as additive offsets: (x + r) where r = -actual_root.
+    """
+    xn = lambda: Node(TERMINAL_X)
+    cn = lambda v: Node(TERMINAL_CONST, value=v)
+
+    # Start with (x + roots[0])
+    tree = Node('+', left=xn(), right=cn(roots[0]))
+    for r in roots[1:]:
+        factor = Node('+', left=xn(), right=cn(r))
+        tree   = Node('*', left=tree, right=factor)
+    # Multiply by leading coefficient
+    return Node('*', left=tree, right=cn(leading))
+
+
+def seed_factored_population(data: list, degree: int, n: int = 30,
+                              root_range: tuple = (-8.0, 8.0),
+                              n_opt_steps: int = 200) -> list:
+    """
+    Generate `n` factored polynomial seeds of a given degree:
+        leading * (x + r1) * (x + r2) * ... * (x + r_degree)
+    Constants are randomly initialised then hill-climbed.
+
+    Useful for polynomial instances where the GP builds bloated trees
+    instead of compact factored forms (e.g. challenge_a_03, challenge_b_01).
+    """
+    import random as _r
+    seeds = []
+    for _ in range(n):
+        roots   = [_r.uniform(*root_range) for _ in range(degree)]
+        leading = _r.uniform(-2.0, 2.0)
+        if abs(leading) < 0.05:
+            leading = 1.0
+        node = make_factored_poly(roots, leading)
+        node = optimise_constants(node, data, n_steps=n_opt_steps, sigma_init=1.0)
+        seeds.append(node)
+    return seeds
+
+
+# ── Gradient-based constant optimisation ─────────────────────────────────────
+
+def optimise_constants_gradient(root: 'Node', data: list,
+                                 n_steps: int = 800,
+                                 lr: float = 0.01) -> 'Node':
+    """
+    Adam gradient descent on constant leaves, keeping tree structure fixed.
+
+    More effective than hill-climbing for rational expressions where the
+    hill-climber gets trapped on ridges (e.g. (a+bx)/(c+x^2) where the
+    true optimum requires precise co-tuning of a, b, c).
+
+    Falls back to optimise_constants (hill-climbing) if fewer than 2
+    constant nodes are present.
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        return optimise_constants(root, data, n_steps, sigma_init=0.3)
+
+    root = root.clone()
+    const_paths = [p for p, n in collect_nodes(root)
+                   if n.node_type == TERMINAL_CONST]
+    if len(const_paths) < 2:
+        return optimise_constants(root, data, n_steps)
+
+    xs = np.array([x for x, _ in data])
+    ys = np.array([y for _, y in data])
+
+    def get_params():
+        return np.array([get_node(root, p).value for p in const_paths])
+
+    def set_params(params):
+        for p, v in zip(const_paths, params):
+            get_node(root, p).value = float(v)
+
+    def mse_and_numerical_grad(params, eps=1e-5):
+        set_params(params)
+        preds = np.array([root.evaluate(x) for x in xs])
+        if not np.all(np.isfinite(preds)):
+            return float('inf'), np.zeros_like(params)
+        res = preds - ys
+        mse = float(np.mean(res**2))
+        grad = np.zeros_like(params)
+        for i in range(len(params)):
+            p_plus = params.copy(); p_plus[i] += eps
+            set_params(p_plus)
+            pp = np.array([root.evaluate(x) for x in xs])
+            if np.all(np.isfinite(pp)):
+                grad[i] = (np.mean((pp - ys)**2) - mse) / eps
+        set_params(params)
+        return mse, grad
+
+    params = get_params()
+    m  = np.zeros_like(params)
+    v  = np.zeros_like(params)
+    b1, b2, ep = 0.9, 0.999, 1e-8
+    best_mse, best_params = float('inf'), params.copy()
+
+    for step in range(1, n_steps + 1):
+        mse, grad = mse_and_numerical_grad(params)
+        if not np.isfinite(mse):
+            break
+        if mse < best_mse:
+            best_mse   = mse
+            best_params = params.copy()
+        m = b1*m + (1-b1)*grad
+        v = b2*v + (1-b2)*grad**2
+        mh = m / (1 - b1**step)
+        vh = v / (1 - b2**step)
+        params = params - lr * mh / (np.sqrt(vh) + ep)
+
+    set_params(best_params)
+    return root
+
+
+# ── Degree-(2,1) rational seed for exponential-like instances ─────────────────
+
+def make_21_rational(a: float, b: float, c: float, d: float) -> 'Node':
+    """
+    Build the tree  (a + b*x + c*x^2) / (1 + d*x).
+    Pole is at x = -1/d; keep d small and negative to push pole outside [0,2].
+    Best Padé approximant for 2^(1+1.5x) on [0,2]:
+        a=2.011, b=1.435, c=0.981, d=-0.225  →  RMSE≈0.0086
+    """
+    xn  = lambda: Node(TERMINAL_X)
+    cn  = lambda v: Node(TERMINAL_CONST, value=v)
+    px2 = Node(TERMINAL_POW, value=2)
+    num = Node('+',
+               left=Node('+', left=cn(a),
+                               right=Node('*', left=cn(b), right=xn())),
+               right=Node('*', left=cn(c), right=px2))
+    den = Node('+', left=cn(1.0),
+                     right=Node('*', left=cn(d), right=xn()))
+    return Node('/', left=num, right=den)
+
+
+def seed_21_rational_population(data: list, n: int = 20) -> list:
+    """
+    Generate n seeds of the form (a+b*x+c*x^2)/(1+d*x) refined by Adam
+    gradient descent.  Designed for rapidly-growing functions like
+    exponentials that are outside the polynomial/integer grammar.
+    """
+    import random as _r
+    seeds = []
+    # Always include the analytical Padé starting point
+    anchor = make_21_rational(2.011, 1.435, 0.981, -0.2252)
+    anchor = optimise_constants_gradient(anchor, data, n_steps=800, lr=0.005)
+    seeds.append(anchor)
+
+    for _ in range(n - 1):
+        # Perturb around the anchor
+        a = _r.uniform(1.5, 3.0)
+        b = _r.uniform(0.5, 3.0)
+        c = _r.uniform(0.3, 2.0)
+        d = _r.uniform(-0.4, -0.05)   # negative → pole outside [0,∞)
+        node = make_21_rational(a, b, c, d)
+        node = optimise_constants_gradient(node, data, n_steps=600, lr=0.005)
+        seeds.append(node)
+    return seeds
+
+
+# ── Linear-denominator ratio seeding  c/(d+x) ────────────────────────────────
+
+def make_linear_ratio(c: float, d: float) -> 'Node':
+    """Build the tree  c / (d + x)."""
+    return Node('/',
+                left=Node(TERMINAL_CONST, value=c),
+                right=Node('+',
+                           left=Node(TERMINAL_CONST, value=d),
+                           right=Node(TERMINAL_X)))
+
+
+def seed_linear_ratio_population(data: list, n: int = 20) -> list:
+    """
+    Generate n seeds of the form c/(d+x) refined by gradient descent.
+    Designed for ratio instances like 3/(x+2) where the denominator
+    is linear — the standard rational seeder (quadratic denom) misses this.
+    """
+    import random as _r
+    seeds = []
+    ys = [y for _, y in data]
+    # Rough estimate: c ≈ y(0)*(d+0) = y(0)*d, d from slope
+    y0  = ys[0]
+    yend = ys[-1]
+    x0, xend = data[0][0], data[-1][0]
+    # c/(d+x): at x=0: c/d=y0; at x=xend: c/(d+xend)=yend
+    # -> d = xend*yend/(y0-yend); c = y0*d
+    try:
+        d_est = xend * yend / (y0 - yend)
+        c_est = y0 * d_est
+    except ZeroDivisionError:
+        d_est, c_est = 2.0, 3.0
+
+    # Always include the analytically estimated seed
+    anchor = make_linear_ratio(c_est, d_est)
+    anchor = optimise_constants_gradient(anchor, data, n_steps=600, lr=0.01)
+    seeds.append(anchor)
+
+    for _ in range(n - 1):
+        c = _r.uniform(0.5, max(10, abs(c_est) * 2))
+        d = _r.uniform(0.1, max(5,  abs(d_est) * 2))
+        node = make_linear_ratio(c, d)
+        node = optimise_constants_gradient(node, data, n_steps=400, lr=0.01)
+        seeds.append(node)
+    return seeds

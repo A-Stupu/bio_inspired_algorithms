@@ -19,7 +19,7 @@ from src.selection import (
 )
 
 
-# -- Configuration -------------------------------------------------------------
+# ── Configuration ─────────────────────────────────────────────────────────────
 
 @dataclass
 class GPConfig:
@@ -56,17 +56,25 @@ class GPConfig:
     n_restarts:         int   = 3       # independent runs; best result kept
 
 
-# -- Single run ----------------------------------------------------------------
+# ── Single run ────────────────────────────────────────────────────────────────
 
 def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
                 run_id: int = 0) -> tuple[Node, float]:
     """One independent GP run.  Returns (best_node, best_fitness)."""
 
-    # -- Initialise population -------------------------------------------------
-    population = [
-        ramped_half_and_half(cfg.max_depth_init, cfg.const_range)
-        for _ in range(cfg.pop_size)
-    ]
+    # ── Initialise population ─────────────────────────────────────────────────
+    # Seed 20% with shallow trees (anti-bloat), and inject rational seeds if
+    # provided by the caller (for ratio/challenge_c instances).
+    rational_seeds = getattr(cfg, '_rational_seeds', [])
+    n_rational = min(len(rational_seeds), cfg.pop_size // 5)
+    n_shallow   = cfg.pop_size // 5
+    n_random    = cfg.pop_size - n_rational - n_shallow
+    population = (
+        [s.clone() for s in rational_seeds[:n_rational]] +
+        [ramped_half_and_half(3, cfg.const_range) for _ in range(n_shallow)] +
+        [ramped_half_and_half(cfg.max_depth_init, cfg.const_range)
+         for _ in range(n_random)]
+    )
     fitnesses = [
         fitness(ind, data, cfg.complexity_weight)
         for ind in population
@@ -79,7 +87,7 @@ def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
     no_improve = 0
 
     for gen in range(cfg.max_generations):
-        # -- Early stop --------------------------------------------------------
+        # ── Early stop ────────────────────────────────────────────────────────
         if best_fit <= cfg.target_fitness:
             break
         if no_improve >= cfg.patience:
@@ -87,7 +95,7 @@ def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
                 print(f"  [run {run_id}] gen {gen}: patience exceeded — stopping")
             break
 
-        # -- Produce children --------------------------------------------------
+        # ── Produce children ──────────────────────────────────────────────────
         children   = []
         child_fits = []
 
@@ -135,14 +143,14 @@ def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
             children.append(parent.clone())
             child_fits.append(fitness(parent, data, cfg.complexity_weight))
 
-        # -- Survivor selection  (µ+λ with elitism) ----------------------------
+        # ── Survivor selection  (µ+λ with elitism) ────────────────────────────
         population, fitnesses = elitist_survivor(
             population, fitnesses,
             children[:cfg.pop_size], child_fits[:cfg.pop_size],
             cfg.pop_size,
         )
 
-        # -- Track best --------------------------------------------------------
+        # ── Track best ────────────────────────────────────────────────────────
         gen_best_idx = min(range(cfg.pop_size), key=lambda i: fitnesses[i])
         gen_best_fit = fitnesses[gen_best_idx]
 
@@ -161,7 +169,7 @@ def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
     return best_node, best_fit
 
 
-# -- Multi-restart entry point -------------------------------------------------
+# ── Multi-restart entry point ─────────────────────────────────────────────────
 
 def run_gp(data: list[tuple[float, float]],
            cfg: GPConfig | None = None) -> tuple[Node, float, dict]:
@@ -184,7 +192,7 @@ def run_gp(data: list[tuple[float, float]],
 
     for run in range(cfg.n_restarts):
         if cfg.verbose >= 1:
-            print(f"  -- restart {run + 1}/{cfg.n_restarts} --")
+            print(f"  ── restart {run + 1}/{cfg.n_restarts} ──")
         node, fit = _single_run(data, cfg, run_id=run + 1)
         if fit < overall_best_fit:
             overall_best_fit  = fit
