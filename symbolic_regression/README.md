@@ -4,10 +4,12 @@ Project II for the Bio-Inspired Algorithms course (ESIEE Paris, 2026).
 
 ## Project Structure
 
+
 ```
 symbolic_regression/
 ├── main.py                  <- CLI: run GP on one instance or in batch
 ├── run_experiments.py       <- Reproduce all results from the report
+├── run_challenges.py        <- Dedicated runner for challenge datasets
 ├── src/
 │   ├── tree.py              <- Node class + random tree generators
 │   ├── fitness.py           <- MSE + complexity-penalised fitness
@@ -15,13 +17,16 @@ symbolic_regression/
 │   ├── selection.py         <- Tournament, elitist, over-selection
 │   ├── gp.py                <- Main GP evolutionary loop
 │   └── data.py              <- Instance file loader
-├── instances/               <- sr_*.txt data files
+├── instances/               <- sr_*.txt data files (poly, ratio, approx, periodic, challenge)
 ├── results/                 <- Output directory (created on run)
-│   ├── summary.txt          <- Human-readable results table
-│   ├── results.csv          <- Full data (one row per instance)
-│   └── raw/                 <- Per-instance trial detail files
+│   ├── summary.txt              <- Human-readable results table (run_experiments)
+│   ├── results.csv               <- Full data (one row per instance)
+│   ├── challenges_summary.txt    <- Human-readable results table (run_challenges)
+│   ├── challenges.csv            <- Full data for challenge runs
+│   ├── plots/                    <- PNG plots per instance
+│   └── raw/                      <- Per-instance trial detail files
 ├── tests/
-│   └── test_all.py          <- Unit tests (21 tests)
+│   └── test_all.py           <- Unit tests
 └── README.md
 ```
 
@@ -33,34 +38,36 @@ Run on a single instance:
 python main.py instances/sr_poly_01.txt
 ```
 
-Reproduce all experimental results:
+Reproduce all first-dataset results (5 trials x 24 instances):
 
 ```bash
-python run_experiments.py
+python run_experiments.py --trials 5 --pop-size 200 --generations 300
 ```
 
-Parameters used in the report:
+Reproduce all challenge results (10 trials x 8 instances):
 
 ```bash
-python run_experiments.py \
-    --trials 5 --pop-size 200 --generations 300
+python run_challenges.py
+    --trials 10
 ```
 
+Both scripts write their output to `results/`
 
-This runs every `sr_*.txt` file found in `instances/` with 5 independent trials each
-and writes three output files to `results/`:
 
-| File | Contents |
-|---|---|
-| `results/summary.txt` | Formatted table grouped by instance type |
-| `results/results.csv` | Full data (best/mean/std RMSE, expression, size, time) |
-| `results/raw/*.txt`   | Per-instance trial-by-trial detail |
+| File                        | Contents                                                      |
+|-----------------------------|---------------------------------------------------------------|
+| `results/summary.txt`       | Formatted table grouped by instance type   |
+| `results/results.csv`       | Full data (best/mean/std RMSE, expression, size, time)        |
+| `results/challenges_summary.txt` | Same for challenge instances         |
+| `results/challenges.csv`    | Full data for challenge runs                                  |
+| `results/raw/*.txt`         | Per-instance trial-by-trial detail                            |
+| `results/plots/*.png`       | Per-instance predicted vs actual fit plots                                      |
 
 
 
 ## Command-Line Options
 
-
+`run_experiments.py`
 
 ```
 python run_experiments.py [options]
@@ -73,59 +80,35 @@ python run_experiments.py [options]
   ...
 ```
 
+`run_challenges.py`
 
-## Algorithm
-
-### Representation
-
-Individuals are binary expression trees. The genotype is the tree structure; the phenotype
-is the mathematical expression it encodes, output as a Python-evaluable string.
-
-- Internal nodes: binary operators `+`, `-`, `*`, `/`
-- Terminal nodes:
-  - `x` - the variable
-  - integer constants, evolved via Gaussian mutation
-  - `x**a` for `a` in {2, 3, 4, 5} - power terms
-
-### Fitness
+Dedicated runner for challenge instances (challenge_a, challenge_b, challenge_c). Key differences from `run_experiments.py`: larger population and more generations by default, float-aware point mutation, structural seeding, and post-evolutionary constant optimisation.
 
 ```
-fitness(f) = MSE(f, data) + complexity_weight * size(tree)
+python run_challenges.py [options]
+ 
+  --instances-dir DIR     Directory containing sr_challenge_*.txt  (default: instances/)
+  --output-dir DIR        Where to write results                   (default: results/)
+  --trials N              Independent trials per instance          (default: 10)
+  --pop-size N            Population size µ                        (default: 300)
+  --generations N         Maximum generations per restart          (default: 500)
+  --restarts N            Independent restarts inside each trial   (default: 1)
+  --max-depth N           Hard depth cap during search             (default: 7)
+  --max-depth-init N      Max depth at initialisation              (default: 5)
+  --tournament-k k        Tournament size for parent selection     (default: 7)
+  --elite-count N         Individuals always preserved each gen.   (default: 5)
+  --patience N            Early-stop if no improvement for N gen.  (default: 120)
+  --p-crossover F         Subtree crossover probability            (default: 0.70)
+  --p-sub-mut F           Subtree mutation probability             (default: 0.10)
+  --p-point-mut F         Point mutation probability (float-aware) (default: 0.12)
+  --p-hoist-mut F         Hoist mutation probability               (default: 0.05)
+  --complexity-weight F   Penalty weight λ on tree size            (default: 0.01)
+  --const-opt-steps N     Hill-climbing steps after GP             (default: 120)
+  --level {a,b,c}         Run only instances of this level
 ```
 
-Lower is better. The complexity penalty discourages bloat without preventing the
-algorithm from building larger expressions when they genuinely improve the fit.
-
-### Variation operators
-
-| Operator | Default probability | Description |
-|---|---|---|
-| Subtree crossover | 70% | Exchange a random subtree between two parents |
-| Subtree mutation  | 10% | Replace a random node with a new random subtree |
-| Point mutation    | 10% | Nudge a constant, change an operator, or alter an exponent |
-| Hoist mutation    |  5% | Replace a node with one of its own subtrees (shrinks tree) |
-| Reproduction      |  5% | Copy a parent unchanged |
-
-Crossover is applied first (with `subtree_crossover`), and constant folding is run
-on each resulting child to simplify constant sub-expressions before evaluation.
-
-### Selection
-
-- Parent selection: k-tournament (default k = 7)
-- Survivor selection: (mu + lambda) elitist — combine parents and children, keep
-  the best `pop_size` overall, with at least `elite_count` from the previous generation.
-
-### Bloat control
-
-Four complementary mechanisms limit tree growth:
-
-1. `complexity_weight` penalty in the fitness function
-2. `max_depth` hard cap enforced after every crossover
-3. `hoist_mutation` operator, which actively reduces tree size
-4. `constant_folding` simplifies sub-trees of constants into a single node
-
-### Restarts and trials
-
-`main.py --restarts N` runs N independent evolutions and returns the best result.
-`run_experiments.py --trials N` runs the whole GP (including its restarts) N times
-independently to estimate mean and standard deviation across runs.
+The `--level` flag is useful for quick targeted runs:
+ 
+```bash
+python run_challenges.py --level c
+```

@@ -8,7 +8,7 @@ import random
 import math
 
 
-# -- Tournament selection ------------------------------------------------------
+# Tournament selection
 
 def tournament_select(population: list, fitnesses: list[float],
                       k: int = 7) -> object:
@@ -34,7 +34,7 @@ def tournament_select_pair(population: list, fitnesses: list[float],
     return p1, p2
 
 
-# -- Fitness-proportionate (roulette wheel) ------------------------------------
+# Fitness-proportionate (roulette wheel)
 
 def roulette_select(population: list, fitnesses: list[float]) -> object:
     """
@@ -54,7 +54,7 @@ def roulette_select(population: list, fitnesses: list[float]) -> object:
     return population[-1]
 
 
-# -- Over-selection ------------------------------------------------------------
+# Over-selection
 
 def over_selection(population: list, fitnesses: list[float],
                    top_fraction: float = 0.2,
@@ -76,7 +76,7 @@ def over_selection(population: list, fitnesses: list[float],
     return population[idx]
 
 
-# -- Survivor selection --------------------------------------------------------
+# Survivor selection
 
 def elitist_survivor(population: list, fitnesses: list[float],
                      children: list, child_fitnesses: list[float],

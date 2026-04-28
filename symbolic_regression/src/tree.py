@@ -7,7 +7,7 @@ import math
 from copy import deepcopy
 
 
-# -- Node types ----------------------------------------------------------------
+# Node types
 
 BINARY_OPS = ['+', '-', '*', '/']
 
@@ -40,7 +40,7 @@ class Node:
         self.left      = left
         self.right     = right
 
-    # -- Evaluation ------------------------------------------------------------
+    # Evaluation
 
     def evaluate(self, x: float) -> float:
         """Evaluate the expression at a given x.  Returns NaN on errors."""
@@ -73,7 +73,7 @@ class Node:
             return lv / rv
         raise ValueError(f"Unknown node type: {self.node_type}")
 
-    # -- String conversion (phenotype) -----------------------------------------
+    # String conversion (phenotype)
 
     def to_string(self, parent_op: str | None = None) -> str:
         """Convert tree to a Python-expression string."""
@@ -102,7 +102,7 @@ class Node:
 
         return expr
 
-    # -- Size / depth ----------------------------------------------------------
+    # Size / depth
 
     def size(self) -> int:
         """Total number of nodes."""
@@ -116,7 +116,7 @@ class Node:
             return 0
         return 1 + max(self.left.depth(), self.right.depth())
 
-    # -- Utilities -------------------------------------------------------------
+    # Utilities
 
     def is_terminal(self) -> bool:
         return self.node_type in (TERMINAL_X, TERMINAL_CONST, TERMINAL_POW)
@@ -128,7 +128,7 @@ class Node:
         return self.to_string()
 
 
-# -- Random tree generation ----------------------------------------------------
+# Random tree generation
 
 def _random_terminal(const_range: tuple[float, float] = (-10.0, 10.0)) -> Node:
     """Return a random terminal node."""
@@ -185,7 +185,7 @@ def ramped_half_and_half(max_depth: int,
     return full(depth, const_range=const_range)
 
 
-# -- Node-list helpers (for variation operators) -------------------------------
+# Node-list helpers (for variation operators)
 
 def collect_nodes(node: Node, path: list | None = None) -> list[tuple[list, Node]]:
     """

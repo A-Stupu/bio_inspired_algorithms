@@ -19,7 +19,7 @@ from src.selection import (
 )
 
 
-# ── Configuration ─────────────────────────────────────────────────────────────
+# Configuration
 
 @dataclass
 class GPConfig:
@@ -56,13 +56,13 @@ class GPConfig:
     n_restarts:         int   = 3       # independent runs; best result kept
 
 
-# ── Single run ────────────────────────────────────────────────────────────────
+# Single run
 
 def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
                 run_id: int = 0) -> tuple[Node, float]:
     """One independent GP run.  Returns (best_node, best_fitness)."""
 
-    # ── Initialise population ─────────────────────────────────────────────────
+    # Initialise population
     # Seed 20% with shallow trees (anti-bloat), and inject rational seeds if
     # provided by the caller (for ratio/challenge_c instances).
     rational_seeds = getattr(cfg, '_rational_seeds', [])
@@ -87,7 +87,7 @@ def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
     no_improve = 0
 
     for gen in range(cfg.max_generations):
-        # ── Early stop ────────────────────────────────────────────────────────
+        # Early stop
         if best_fit <= cfg.target_fitness:
             break
         if no_improve >= cfg.patience:
@@ -95,7 +95,7 @@ def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
                 print(f"  [run {run_id}] gen {gen}: patience exceeded — stopping")
             break
 
-        # ── Produce children ──────────────────────────────────────────────────
+        # Produce children
         children   = []
         child_fits = []
 
@@ -143,14 +143,14 @@ def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
             children.append(parent.clone())
             child_fits.append(fitness(parent, data, cfg.complexity_weight))
 
-        # ── Survivor selection  (µ+λ with elitism) ────────────────────────────
+        # Survivor selection  (µ+λ with elitism)
         population, fitnesses = elitist_survivor(
             population, fitnesses,
             children[:cfg.pop_size], child_fits[:cfg.pop_size],
             cfg.pop_size,
         )
 
-        # ── Track best ────────────────────────────────────────────────────────
+        # Track best
         gen_best_idx = min(range(cfg.pop_size), key=lambda i: fitnesses[i])
         gen_best_fit = fitnesses[gen_best_idx]
 
@@ -169,7 +169,7 @@ def _single_run(data: list[tuple[float, float]], cfg: GPConfig,
     return best_node, best_fit
 
 
-# ── Multi-restart entry point ─────────────────────────────────────────────────
+# Multi-restart entry point
 
 def run_gp(data: list[tuple[float, float]],
            cfg: GPConfig | None = None) -> tuple[Node, float, dict]:

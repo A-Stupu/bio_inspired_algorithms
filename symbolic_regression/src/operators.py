@@ -20,7 +20,7 @@ from src.tree import (
 )
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# helpers
 
 def _pick_random_node(root: Node) -> tuple[list, Node]:
     """Return a (path, node) chosen uniformly at random."""
@@ -36,7 +36,7 @@ def _pick_internal_node(root: Node) -> tuple[list, Node] | None:
     return random.choice(internals)
 
 
-# ── Mutation ──────────────────────────────────────────────────────────────────
+# Mutation
 
 def subtree_mutation(root: Node, max_depth: int = 4,
                      const_range: tuple[float, float] = (-10.0, 10.0)) -> Node:
@@ -144,7 +144,7 @@ def _fold(node: Node):
             pass
 
 
-# ── Crossover ─────────────────────────────────────────────────────────────────
+# Crossover
 
 def subtree_crossover(parent1: Node, parent2: Node,
                       max_depth: int = 8) -> tuple[Node, Node]:
@@ -176,7 +176,7 @@ def subtree_crossover(parent1: Node, parent2: Node,
     return child1, child2
 
 
-# ── Constant optimisation (local search) ─────────────────────────────────────
+# Constant optimisation (local search)
 
 def optimise_constants(root: Node,
                        data: list[tuple[float, float]],
@@ -229,7 +229,7 @@ def optimise_constants(root: Node,
     return best
 
 
-# ── Structure-aware rational seeding ─────────────────────────────────────────
+# Structure-aware rational seeding
 
 def make_rational_seed(a: float, b: float, c: float, d: float) -> 'Node':
     """
@@ -274,7 +274,7 @@ def seed_rational_population(data: list, n: int = 20,
     return seeds
 
 
-# ── Factored polynomial seeding ───────────────────────────────────────────────
+# Factored polynomial seeding
 
 def make_factored_poly(roots: list[float], leading: float = 1.0) -> 'Node':
     """
@@ -317,7 +317,7 @@ def seed_factored_population(data: list, degree: int, n: int = 30,
     return seeds
 
 
-# ── Gradient-based constant optimisation ─────────────────────────────────────
+# Gradient-based constant optimisation
 
 def optimise_constants_gradient(root: 'Node', data: list,
                                  n_steps: int = 800,
@@ -393,7 +393,7 @@ def optimise_constants_gradient(root: 'Node', data: list,
     return root
 
 
-# ── Degree-(2,1) rational seed for exponential-like instances ─────────────────
+# Degree-(2,1) rational seed for exponential-like instances
 
 def make_21_rational(a: float, b: float, c: float, d: float) -> 'Node':
     """
@@ -439,7 +439,7 @@ def seed_21_rational_population(data: list, n: int = 20) -> list:
     return seeds
 
 
-# ── Linear-denominator ratio seeding  c/(d+x) ────────────────────────────────
+# Linear-denominator ratio seeding  c/(d+x)
 
 def make_linear_ratio(c: float, d: float) -> 'Node':
     """Build the tree  c / (d + x)."""

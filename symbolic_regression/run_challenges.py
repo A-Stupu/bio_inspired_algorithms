@@ -48,7 +48,7 @@ from src.operators import (optimise_constants, optimise_constants_gradient,
                            seed_factored_population, make_factored_poly)
 
 
-# ── Default parameters (tuned for challenge instances) ────────────────────────
+# Default parameters (tuned for challenge instances)
 
 N_TRIALS        = 10    # more restarts -> better chance on hard instances
 POP_SIZE        = 300   # larger population -> more diversity
@@ -70,7 +70,7 @@ INSTANCES_DIR   = 'instances'
 OUTPUT_DIR      = 'results'
 
 
-# ── Data structures ───────────────────────────────────────────────────────────
+# Data structures
 
 @dataclass
 class ChallengeResult:
@@ -89,7 +89,7 @@ class ChallengeResult:
     mean_time_sec:  float
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# Helpers
 
 def _std(values):
     if len(values) < 2:
@@ -136,10 +136,10 @@ def make_config(args) -> GPConfig:
     )
 
 
-# ── Per-instance runner ───────────────────────────────────────────────────────
+# Per-instance runner
 
 
-# ── Structural seed builder ───────────────────────────────────────────────────
+# Structural seed builder
 
 def _build_structural_seeds(data: list, level: str, pop_size: int) -> list:
     """
@@ -213,7 +213,7 @@ def run_challenge_instance(filepath, cfg, n_trials, const_opt_steps, raw_dir):
     best_node_overall = None
     best_rmse_overall = float('inf')
 
-    # ── Smart seeding based on instance characteristics ──────────────────────
+    # Smart seeding based on instance characteristics
     # Analyse the data to guess what kind of structure to seed.
     # This dramatically helps instances where the GP builds bloated trees
     # instead of compact forms.
@@ -246,7 +246,7 @@ def run_challenge_instance(filepath, cfg, n_trials, const_opt_steps, raw_dir):
 
     cfg.complexity_weight = orig_complexity
 
-    # ── Constant optimisation on the best tree ────────────────────────────────
+    # Constant optimisation on the best tree
     expr_before = best_node_overall.to_string()
     rmse_before = best_rmse_overall
 
@@ -269,7 +269,7 @@ def run_challenge_instance(filepath, cfg, n_trials, const_opt_steps, raw_dir):
           f"after const-opt={rmse_after:.6g}  "
           f"(improvement: {improvement:+.6g})")
 
-    # ── Write raw detail file ─────────────────────────────────────────────────
+    # Write raw detail file
     os.makedirs(raw_dir, exist_ok=True)
     raw_path = os.path.join(raw_dir, fname.replace('.txt', '_challenge_raw.txt'))
     with open(raw_path, 'w', encoding='utf-8') as f:
@@ -308,7 +308,7 @@ def run_challenge_instance(filepath, cfg, n_trials, const_opt_steps, raw_dir):
     return result, data, best_node_overall, opt_node
 
 
-# ── Plot generation ───────────────────────────────────────────────────────────
+# Plot generation
 
 def _plot_instance(data, opt_node, best_node_before, result, plot_dir):
     """
@@ -434,7 +434,7 @@ def plot_level_overview(results, plot_dir):
         print(f"Overview plot saved -> {path}")
 
 
-# ── Output writers ────────────────────────────────────────────────────────────
+# Output writers
 
 
 def write_csv(results, path):
@@ -518,7 +518,7 @@ def write_summary(results, path, cfg, n_trials, const_opt_steps, total_time):
     print(text)
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+# CLI
 
 def build_parser():
     p = argparse.ArgumentParser(
@@ -548,7 +548,7 @@ def build_parser():
     return p
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# Main
 
 def main():
     args   = build_parser().parse_args()

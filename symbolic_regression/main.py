@@ -28,7 +28,7 @@ from src.gp   import run_gp, GPConfig
 from src.fitness import mse, rmse
 
 
-# -- Argument parsing ----------------------------------------------------------
+# Argument parsing
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -81,7 +81,7 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-# -- Single-instance runner ----------------------------------------------------
+# Single-instance runner
 
 def run_instance(filepath: str, cfg: GPConfig, output_dir: str | None = None):
     data, meta = load_instance(filepath)
@@ -128,7 +128,7 @@ def run_instance(filepath: str, cfg: GPConfig, output_dir: str | None = None):
     return expr, error, info
 
 
-# -- Main ----------------------------------------------------------------------
+# Main
 
 def main():
     parser = build_parser()
